@@ -1,0 +1,20 @@
+@model PROJECT2106.Models.Post
+
+@{
+    ViewData["Title"] = "Delete Post";
+}
+
+<h2>Delete Post?</h2>
+
+<div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; max-width: 600px;">
+    <p>@Model.Content</p>
+    <small>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+</div>
+
+<br />
+<form method="post">
+    <button type="submit" style="padding: 8px 20px; background: red; color: white; border: none; border-radius: 4px;">
+        Yes, delete
+    </button>
+    <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
+</form>

@@ -1,0 +1,20 @@
+@model PROJECT2106.Models.Post
+
+@{
+    ViewData["Title"] = "Edit Post";
+}
+
+<h2>Edit Post</h2>
+
+<form method="post">
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="CreatedAt" value="@Model.CreatedAt" />
+    <input type="hidden" name="AuthorId" value="@Model.AuthorId" />
+    <div style="margin-bottom: 10px;">
+        <label>Content:</label>
+        <br />
+        <textarea name="Content" rows="4" cols="50" style="width: 100%; max-width: 600px;">@Model.Content</textarea>
+    </div>
+    <button type="submit" style="padding: 8px 20px;">Save</button>
+    <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
+</form>

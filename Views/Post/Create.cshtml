@@ -1,0 +1,17 @@
+@model PROJECT2106.Models.Post
+
+@{
+    ViewData["Title"] = "New Post";
+}
+
+<h2>New Post</h2>
+
+<form method="post">
+    <div style="margin-bottom: 10px;">
+        <label>Content:</label>
+        <br />
+        <textarea name="Content" rows="4" cols="50" style="width: 100%; max-width: 600px;"></textarea>
+    </div>
+    <button type="submit" style="padding: 8px 20px;">Publish</button>
+    <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
+</form>

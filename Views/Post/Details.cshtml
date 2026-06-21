@@ -1,0 +1,15 @@
+@model PROJECT2106.Models.Post
+
+@{
+    ViewData["Title"] = "Post";
+}
+
+<h2>Post #@Model.Id</h2>
+
+<div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
+    <p>@Model.Content</p>
+    <small>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+</div>
+
+<br />
+<a asp-controller="Post" asp-action="Index">← Back to Feed</a>
