@@ -1,0 +1,49 @@
+@model PROJECT2106.Models.Comment
+
+<li>
+    <strong>@Model.Author?.UserName:</strong>
+    <span id="comment-text-@Model.Id">@Model.Content</span>
+
+    @if (Model.IsEdited)
+    {
+        <small style="color:gray;">Edited at @Model.EditedAt?.ToString("dd.MM.yyyy HH:mm")</small>
+    }
+    <br />
+    <small>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+
+    @if (User.Identity!.IsAuthenticated)
+    {
+        <button onclick="toggleReply(@Model.Id)" class="btn btn-sm btn-outline-primary">Відповісти</button>
+        <form id="reply-form-@Model.Id" method="post" asp-controller="Post" asp-action="AddComment" style="display:none; margin-top:5px;">
+            <input type="hidden" name="postId" value="@Model.PostId" />
+            <input type="hidden" name="parentCommentId" value="@Model.Id" />
+            <textarea name="content" rows="2" style="width:100%; max-width:500px;" placeholder="Ваша відповідь..."></textarea>
+            <button type="submit" class="btn btn-sm btn-primary mt-1">Надіслати</button>
+        </form>
+    }
+
+    @if (User.Identity!.IsAuthenticated && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
+    {
+        <button onclick="startEdit(@Model.Id)" class="btn btn-sm btn-outline-secondary">Edit</button>
+        <form method="post" asp-controller="Post" asp-action="DeleteComment" style="display:inline;">
+            <input type="hidden" name="commentId" value="@Model.Id" />
+            <button type="submit" style="color:red;" onclick="return confirm('Видалити коментар?')">Delete</button>
+        </form>
+        <form id="comment-edit-form-@Model.Id" method="post" asp-controller="Post" asp-action="EditComment" style="display:none;">
+            <input type="hidden" name="commentId" value="@Model.Id" />
+            <textarea name="content" rows="2" style="width:100%; max-width:500px;">@Model.Content</textarea>
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit(@Model.Id)">Cancel</button>
+        </form>
+    }
+
+    @if (Model.Replies != null && Model.Replies.Any())
+    {
+        <ul style="margin-left: 20px;">
+            @foreach (var reply in Model.Replies)
+            {
+                await Html.RenderPartialAsync("_Comment", reply);
+            }
+        </ul>
+    }
+</li>

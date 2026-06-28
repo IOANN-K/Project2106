@@ -14,6 +14,8 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Follow> Follows { get; set; }
     public DbSet<ActivityLog> ActivityLogs { get; set; }
+    public DbSet<Like> Likes { get; set; }
+    public DbSet<Tag> Tags { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -30,5 +32,10 @@ public class AppDbContext : IdentityDbContext<AppUser>
             .WithMany(u => u.Following)
             .HasForeignKey(f => f.FollowingId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Post>()
+            .HasMany(p => p.Tags)
+            .WithMany(t => t.Posts)
+            .UsingEntity(j => j.ToTable("PostTags"));
     }
 }

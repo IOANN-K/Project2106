@@ -6,18 +6,39 @@
 
 <h2>Post Feed</h2>
 
-<a asp-action="Create" style="display: inline-block; margin-bottom: 15px; padding: 8px 20px;">
-    + New Post
-</a>
+    <form method="get" asp-action="Index" style="margin-bottom:15px;">
+        <input type="text" name="tag" value="@ViewBag.CurrentTag" placeholder="Search by tag..." class="form-control" style="max-width:300px; display:inline-block;" />
+        <button type="submit" class="btn btn-outline-primary">Filter</button>
+        @if (!string.IsNullOrEmpty(ViewBag.CurrentTag as string))
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+        }
+    </form>
 
-@foreach (var post in Model)
-{
-    <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 8px;">
-        <p>@post.Content</p>
-        <small>@post.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
-        <br /><br />
-        <a asp-action="Details" asp-route-id="@post.Id">Details</a>
-        <a asp-action="Edit" asp-route-id="@post.Id" style="margin-left: 10px;">Edit</a>
-        <a asp-action="Delete" asp-route-id="@post.Id" style="margin-left: 10px; color: red;">Delete</a>
-    </div>
+    <a asp-action="Create" style="display: inline-block; margin-bottom: 15px; padding: 8px 20px;">
+        + New Post
+    </a>
+
+    @foreach (var post in Model)
+    {
+        <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 8px;">
+            <p>@post.Content</p>
+            <small>@post.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+            @if (post.Tags != null && post.Tags.Any())
+            {
+                <div style="margin-top:5px;">
+                    @foreach (var tag in post.Tags)
+                    {
+                        <a asp-action="Index" asp-route-tag="@tag.Name" class="badge bg-secondary text-decoration-none" style="margin-right:3px;">@tag.Name</a>
+                    }
+                </div>
+            }
+            <br /><br />
+            <a asp-action="Details" asp-route-id="@post.Id">Comments (@(post.Comments?.Count ?? 0))</a>
+            @if (User.Identity!.IsAuthenticated && (post.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
+            {
+                <a asp-action="Edit" asp-route-id="@post.Id" style="margin-left: 10px;">Edit</a>
+                <a asp-action="Delete" asp-route-id="@post.Id" style="margin-left: 10px; color: red;">Delete</a>
+            }
+        </div>
 }   

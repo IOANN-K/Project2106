@@ -9,4 +9,9 @@ public class Comment
     public AppUser? Author { get; set; }
     public int PostId { get; set; }
     public Post? Post { get; set; }
+    public bool IsEdited { get; set; } = false;
+    public DateTime? EditedAt { get; set; }
+    public int? ParentCommentId { get; set; }
+    public Comment? ParentComment { get; set; }
+    public List<Comment> Replies { get; set; } = new();
 }

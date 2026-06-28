@@ -7,4 +7,6 @@ public class Follow
     public AppUser? Follower { get; set; }
     public string FollowingId { get; set; } = string.Empty;
     public AppUser? Following { get; set; }
+
+    public DateTime CreatedAt { get; set; }
 }

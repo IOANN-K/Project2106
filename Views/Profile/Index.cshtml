@@ -9,4 +9,42 @@
 <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
     <p><strong>About:</strong> @Model.Bio</p>
     <p><strong>Registered:</strong> @Model.CreatedAt.ToString("dd.MM.yyyy")</p>
+    <p><strong>Posts:</strong> @ViewBag.PostsCount</p>
+    <p><strong>Followers:</strong> @ViewBag.FollowersCount</p>
+    <p><strong>Following:</strong> @ViewBag.FollowingCount</p>
+    <p><strong>Likes received:</strong> @ViewBag.LikesCount</p>
+    <h3 style="margin-top:20px;">Posts</h3>
+    @if (ViewBag.Posts != null)
+    {
+        foreach (var post in ViewBag.Posts)
+        {
+            <div style="border: 1px solid #ccc; padding: 10px; margin: 8px 0; border-radius: 8px;">
+                <p>@post.Content</p>
+                <small>@post.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                <a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-primary" style="margin-left:10px;">View Post</a>
+            </div>
+        }
+    }
+    else
+    {
+        <p>This user has not created any posts yet.</p>
+    }
+    @if (User.Identity!.IsAuthenticated && User.Identity.Name != Model.UserName)
+{
+    var isFollowing = (ViewBag.IsFollowing as bool?) ?? false;
+    if (isFollowing)
+    {
+        <form method="post" asp-controller="Follow" asp-action="Unfollow">
+            <input type="hidden" name="username" value="@Model.UserName" />
+            <button type="submit" class="btn btn-outline-secondary">Unfollow</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" asp-controller="Follow" asp-action="Follow">
+            <input type="hidden" name="username" value="@Model.UserName" />
+            <button type="submit" class="btn btn-primary">Follow</button>
+        </form>
+    }
+}
 </div>

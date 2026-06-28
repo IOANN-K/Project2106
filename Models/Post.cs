@@ -8,4 +8,5 @@ public class Post
     public string? AuthorId { get; set; }
     public AppUser? Author { get; set; }
     public List<Comment> Comments { get; set; } = new();
+    public List<Tag> Tags { get; set; } = new();
 }
