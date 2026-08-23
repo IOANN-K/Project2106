@@ -1,19 +1,41 @@
-@model PROJECT2106.Models.Post
+@model PROJECT2106.ViewModels.PostCreateViewModel
+
 @{
     ViewData["Title"] = "New Post";
 }
+
 <h2>New Post</h2>
+
 <form method="post">
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
     <div style="margin-bottom: 10px;">
-        <label>Content:</label>
+        <label asp-for="Content">Content:</label>
         <br />
-        <textarea name="Content" rows="4" cols="50" style="width: 100%; max-width: 600px;"></textarea>
+        <textarea asp-for="Content"
+                  rows="4"
+                  style="width: 100%; max-width: 600px;"></textarea>
+        <br />
+        <span asp-validation-for="Content" class="text-danger"></span>
     </div>
+
     <div style="margin-bottom: 10px;">
-        <label>Tags (comma separated, e.g. technology,sports,news):</label>
+        <label asp-for="Tags">Tags (comma separated):</label>
         <br />
-        <input type="text" name="tags" style="width: 100%; max-width: 600px;" placeholder="technology, sports, news" />
+        <input asp-for="Tags"
+               type="text"
+               style="width: 100%; max-width: 600px;"
+               placeholder="technology, sports, news" />
+        <br />
+        <span asp-validation-for="Tags" class="text-danger"></span>
     </div>
+
     <button type="submit" style="padding: 8px 20px;">Publish</button>
     <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

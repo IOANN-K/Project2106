@@ -23,15 +23,27 @@ public class AppDbContext : IdentityDbContext<AppUser>
 
         builder.Entity<Follow>()
             .HasOne(f => f.Follower)
-            .WithMany(u => u.Followers)
+            .WithMany(u => u.Following)
             .HasForeignKey(f => f.FollowerId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Entity<Follow>()
             .HasOne(f => f.Following)
-            .WithMany(u => u.Following)
+            .WithMany(u => u.Followers)
             .HasForeignKey(f => f.FollowingId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Follow>()
+            .HasIndex(f => new { f.FollowerId, f.FollowingId })
+            .IsUnique();
+
+        builder.Entity<Like>()
+            .HasIndex(l => new { l.UserId, l.PostId })
+            .IsUnique();
+
+        builder.Entity<Tag>()
+            .HasIndex(t => t.Name)
+            .IsUnique();
 
         builder.Entity<Post>()
             .HasMany(p => p.Tags)

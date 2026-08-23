@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using PROJECT2106.Data;
 using PROJECT2106.Models;
+using PROJECT2106.ViewModels;
 
 namespace PROJECT2106.Controllers;
 
@@ -67,13 +68,53 @@ public class PostController : Controller
 
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> AddComment(int postId, string content, int? parentCommentId)
+    public async Task<IActionResult> AddComment(
+        int postId,
+        CommentInputViewModel model,
+        int? parentCommentId)
     {
         var post = await _db.Posts.FindAsync(postId);
-        if (post == null) return NotFound();
+        if (post == null)
+            return NotFound();
+
+        var content = model.Content?.Trim();
+
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(content))
+        {
+            TempData["CommentError"] =
+                ModelState.Values
+                    .SelectMany(value => value.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault()
+                ?? "Comment content is required.";
+
+            return RedirectToAction(nameof(Details), new { id = postId });
+        }
+
+        if (content.Length > 2000)
+        {
+            TempData["CommentError"] =
+                "Comment cannot exceed 2000 characters.";
+
+            return RedirectToAction(nameof(Details), new { id = postId });
+        }
+
+        if (parentCommentId.HasValue)
+        {
+            var parentComment = await _db.Comments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == parentCommentId.Value);
+
+            if (parentComment == null)
+                return BadRequest("Parent comment does not exist.");
+
+            if (parentComment.PostId != postId)
+                return BadRequest("Parent comment belongs to another post.");
+        }
 
         var userId = _userManager.GetUserId(User);
-        if (userId == null) return Forbid();
+        if (userId == null)
+            return Forbid();
 
         var comment = new Comment
         {
@@ -86,7 +127,11 @@ public class PostController : Controller
 
         _db.Comments.Add(comment);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Added comment #{CommentId} to post #{PostId}", comment.Id, postId);
+
+        _logger.LogInformation(
+            "Added comment #{CommentId} to post #{PostId}",
+            comment.Id,
+            postId);
 
         return RedirectToAction(nameof(Details), new { id = postId });
     }
@@ -100,67 +145,102 @@ public class PostController : Controller
     // POST /Post/Create
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> Create(Post post, string tags)
+    public async Task<IActionResult> Create(PostCreateViewModel model)
     {
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var userId = _userManager.GetUserId(User);
+        if (userId == null)
+            return Forbid();
+
+        var post = new Post
         {
-            var userId = _userManager.GetUserId(User);
-            if (userId == null) return Forbid();
+            Content = model.Content.Trim(),
+            CreatedAt = DateTime.Now,
+            AuthorId = userId
+        };
 
-            post.CreatedAt = DateTime.Now;
-            post.AuthorId = userId;
-            _db.Posts.Add(post);
+        _db.Posts.Add(post);
 
-            if (!string.IsNullOrWhiteSpace(tags))
+        if (!string.IsNullOrWhiteSpace(model.Tags))
+        {
+            var tagNames = model.Tags
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(tag => tag.Trim().ToLowerInvariant())
+                .Where(tag => tag.Length > 0)
+                .Distinct();
+
+            foreach (var tagName in tagNames)
             {
-                var tagNames = tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                   .Select(t => t.Trim().ToLowerInvariant())
-                                   .Distinct();
+                var tag =
+                    await _db.Tags.FirstOrDefaultAsync(t => t.Name == tagName)
+                    ?? new Tag { Name = tagName };
 
-                foreach (var tagName in tagNames)
-                {
-                    var tag = await _db.Tags.FirstOrDefaultAsync(t => t.Name == tagName)
-                          ?? new Tag { Name = tagName };
-                    post.Tags.Add(tag);
-                }
+                post.Tags.Add(tag);
             }
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Created post #{Id}", post.Id);
-            return RedirectToAction(nameof(Index));
         }
-        return View(post);
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Created post #{Id}", post.Id);
+
+        return RedirectToAction(nameof(Index));
     }
 
     // GET /Post/Edit/1
+    [Authorize]
     public async Task<IActionResult> Edit(int id)
     {
-        var post = await _db.Posts.FindAsync(id);
-        if (post == null) return NotFound();
+        var post = await _db.Posts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (post == null)
+            return NotFound();
+
         var currentUserId = _userManager.GetUserId(User);
+
         if (post.AuthorId != currentUserId && !User.IsInRole("Admin"))
-        return Forbid();
-        return View(post);
+            return Forbid();
+
+        var model = new PostEditViewModel
+        {
+            Id = post.Id,
+            Content = post.Content
+        };
+
+        return View(model);
     }
 
     // POST /Post/Edit/1
     [HttpPost]
-    [HttpPost]
-    public async Task<IActionResult> Edit(int id, Post post)
+    [Authorize]
+    public async Task<IActionResult> Edit(int id, PostEditViewModel model)
     {
-        if (id != post.Id) return NotFound();
+        if (id != model.Id)
+            return NotFound();
+
         var dbPost = await _db.Posts.FindAsync(id);
-        if (dbPost == null) return NotFound();
+
+        if (dbPost == null)
+            return NotFound();
+
         var currentUserId = _userManager.GetUserId(User);
+
         if (dbPost.AuthorId != currentUserId && !User.IsInRole("Admin"))
             return Forbid();
-        if (ModelState.IsValid)
-        {
-            _db.Update(post);
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Updated post #{Id}", post.Id);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(post);
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        dbPost.Content = model.Content.Trim();
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Updated post #{Id}", dbPost.Id);
+
+        return RedirectToAction(nameof(Index));
     }
 
     // GET /Post/Delete/1
@@ -209,20 +289,62 @@ public class PostController : Controller
     // Edit a comment
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> EditComment(int commentId, string content)
+    public async Task<IActionResult> EditComment(
+        int commentId,
+        CommentInputViewModel model)
     {
         var comment = await _db.Comments.FindAsync(commentId);
-        if (comment == null) return NotFound();
+
+        if (comment == null)
+            return NotFound();
+
         var currentUserId = _userManager.GetUserId(User);
+
         if (comment.AuthorId != currentUserId && !User.IsInRole("Admin"))
             return Forbid();
+
+        var content = model.Content?.Trim();
+
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(content))
+        {
+            TempData["CommentError"] =
+                ModelState.Values
+                    .SelectMany(value => value.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault()
+                ?? "Comment content is required.";
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = comment.PostId });
+        }
+
+        if (content.Length > 2000)
+        {
+            TempData["CommentError"] =
+                "Comment cannot exceed 2000 characters.";
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = comment.PostId });
+        }
+
         comment.Content = content;
         comment.IsEdited = true;
         comment.EditedAt = DateTime.Now;
+
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Edited comment #{CommentId}", commentId);
-        return RedirectToAction(nameof(Details), new { id = comment.PostId });
-    }[Authorize]
+
+        _logger.LogInformation(
+            "Edited comment #{CommentId}",
+            commentId);
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = comment.PostId });
+    }
+
+    [Authorize]
     public async Task<IActionResult> Feed()
     {
         var userId = _userManager.GetUserId(User);

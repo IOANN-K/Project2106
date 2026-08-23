@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using PROJECT2106.Data;
 using PROJECT2106.Models;
 
@@ -23,6 +24,9 @@ public class FollowController : Controller
     public async Task<IActionResult> Follow(string username)
     {
         var currentUserId = _userManager.GetUserId(User);
+        if (currentUserId == null)
+            return Forbid();
+
         var userToFollow = await _userManager.FindByNameAsync(username);
 
         if (userToFollow == null || userToFollow.Id == currentUserId)
@@ -46,7 +50,24 @@ public class FollowController : Controller
         };
 
         _db.Follows.Add(follow);
-        await _db.SaveChangesAsync();
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+        {
+            _db.Entry(follow).State = EntityState.Detached;
+
+            return RedirectToAction(
+                "Index",
+                "Profile",
+                new { username });
+        }
 
         return RedirectToAction("Index", "Profile", new { username });
     }
@@ -55,6 +76,9 @@ public class FollowController : Controller
     public async Task<IActionResult> Unfollow(string username)
     {
         var currentUserId = _userManager.GetUserId(User);
+        if (currentUserId == null)
+            return Forbid();
+
         var userToUnfollow = await _userManager.FindByNameAsync(username);
 
         if (userToUnfollow == null || userToUnfollow.Id == currentUserId)

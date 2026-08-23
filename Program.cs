@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using PROJECT2106.Data;
 using PROJECT2106.Models;
 using Microsoft.AspNetCore.Identity;
+using PROJECT2106.Options;
+using PROJECT2106.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -19,8 +21,16 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.User.RequireUniqueEmail = true;
 });
 
+builder.Services.Configure<AdminBootstrapOptions>(
+    builder.Configuration.GetSection(AdminBootstrapOptions.SectionName));
+
+builder.Services.AddScoped<IdentityBootstrapService>();
+
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+});
 builder.Services.AddSingleton<PROJECT2106.Services.IActivityLogService, 
                                PROJECT2106.Services.ActivityLogService>();
 
@@ -55,40 +65,12 @@ app.MapControllerRoute(
 
 
 
-// Створення ролей при старті
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+    var bootstrapService =
+        scope.ServiceProvider.GetRequiredService<IdentityBootstrapService>();
 
-    // Створюємо ролі якщо не існують
-    string[] roles = { "Admin", "User" };
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-            await roleManager.CreateAsync(new IdentityRole(role));
-    }
-
-    // Створюємо адміна якщо не існує
-    var adminEmail = "admin@admin.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser == null)
-    {
-        adminUser = new AppUser
-        {
-            UserName = "admin",
-            Email = adminEmail,
-            CreatedAt = DateTime.Now
-        };
-        await userManager.CreateAsync(adminUser, "Admin123!");
-        await userManager.AddToRoleAsync(adminUser, "Admin");
-    }
-    else
-    {
-        // Скидаємо пароль якщо вже існує
-        var token = await userManager.GeneratePasswordResetTokenAsync(adminUser);
-        await userManager.ResetPasswordAsync(adminUser, token, "Admin123!");
-    }
+    await bootstrapService.InitializeAsync();
 }
 
 app.Run();

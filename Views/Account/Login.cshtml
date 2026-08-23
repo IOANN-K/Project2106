@@ -8,6 +8,7 @@
 
 <div style="max-width: 400px;">
     <form method="post">
+    @Html.AntiForgeryToken()
         <div asp-validation-summary="All" style="color: red;"></div>
 
         <div style="margin-bottom: 10px;">
