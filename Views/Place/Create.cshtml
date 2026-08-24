@@ -37,6 +37,24 @@
         <textarea asp-for="Description"
                   class="form-control"
                   rows="3"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="InitialPostContent" class="form-label"></label>
+
+        <textarea asp-for="InitialPostContent"
+                  class="form-control"
+                  rows="5"
+                  maxlength="5000"
+                  placeholder="Write an optional first post about this place..."></textarea>
+
+        <span asp-validation-for="InitialPostContent"
+              class="text-danger"></span>
+
+        <div class="form-text">
+            Optional. This will be created as a post linked to the place.
+        </div>
     </div>
 
     <div class="card mb-3">

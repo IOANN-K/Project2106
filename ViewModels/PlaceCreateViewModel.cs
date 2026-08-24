@@ -9,14 +9,20 @@ public sealed class PlaceCreateViewModel
     [StringLength(200)]
     public string Name { get; set; } = string.Empty;
 
+    [Required]
     [Range(-90.0, 90.0)]
-    public double Latitude { get; set; }
+    public double? Latitude { get; set; }
 
+    [Required]
     [Range(-180.0, 180.0)]
-    public double Longitude { get; set; }
+    public double? Longitude { get; set; }
 
     [StringLength(1000)]
     public string? Description { get; set; }
+
+    [StringLength(5000)]
+    [Display(Name = "Initial post")]
+    public string? InitialPostContent { get; set; }
 
     public SystemCategory? SystemCategory { get; set; }
 

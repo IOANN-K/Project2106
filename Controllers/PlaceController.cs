@@ -37,6 +37,11 @@ public class PlaceController : Controller
     [Authorize]
     public async Task<IActionResult> Create(PlaceCreateViewModel model)
     {
+        var userId = _userManager.GetUserId(User);
+
+        if (userId == null)
+            return Forbid();
+
         var hasSystem = model.SystemCategory.HasValue;
         var hasCustom = model.CustomCategoryId.HasValue;
 
@@ -47,11 +52,22 @@ public class PlaceController : Controller
                 "Choose either a system category or a custom category.");
         }
 
-        CustomCategory? customCategory = null;
+        if (model.SystemCategory.HasValue &&
+            !Enum.IsDefined(model.SystemCategory.Value))
+        {
+            ModelState.AddModelError(
+                nameof(model.SystemCategory),
+                "Invalid system category.");
+        }
 
-        var userId = _userManager.GetUserId(User);
-        if (userId == null)
-            return Forbid();
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            ModelState.AddModelError(
+                nameof(model.Name),
+                "Place name is required.");
+        }
+
+        CustomCategory? customCategory = null;
 
         if (model.CustomCategoryId.HasValue)
         {
@@ -78,8 +94,8 @@ public class PlaceController : Controller
         var place = new Place
         {
             Name = model.Name.Trim(),
-            Latitude = model.Latitude,
-            Longitude = model.Longitude,
+            Latitude = model.Latitude!.Value,
+            Longitude = model.Longitude!.Value,
             Description = string.IsNullOrWhiteSpace(model.Description)
                 ? null
                 : model.Description.Trim(),
@@ -90,6 +106,20 @@ public class PlaceController : Controller
         };
 
         _db.Places.Add(place);
+
+        if (!string.IsNullOrWhiteSpace(model.InitialPostContent))
+        {
+            var initialPost = new Post
+            {
+                Content = model.InitialPostContent.Trim(),
+                AuthorId = userId,
+                CreatedAt = DateTime.Now,
+                Place = place
+            };
+
+            _db.Posts.Add(initialPost);
+        }
+
         await _db.SaveChangesAsync();
 
         return RedirectToAction(nameof(Details), new { id = place.Id });
