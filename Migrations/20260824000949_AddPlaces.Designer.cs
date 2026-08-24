@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PROJECT2106.Data;
@@ -11,9 +12,11 @@ using PROJECT2106.Data;
 namespace PROJECT2106.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824000949_AddPlaces")]
+    partial class AddPlaces
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -297,36 +300,6 @@ namespace PROJECT2106.Migrations
                     b.ToTable("Comments");
                 });
 
-            modelBuilder.Entity("PROJECT2106.Models.CustomCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("CustomCategories");
-                });
-
             modelBuilder.Entity("PROJECT2106.Models.Follow", b =>
                 {
                     b.Property<int>("Id")
@@ -417,26 +390,20 @@ namespace PROJECT2106.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<int?>("SystemCategory")
+                    b.Property<int>("SystemCategory")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
 
-                    b.HasIndex("CustomCategoryId");
-
                     b.ToTable("Places", t =>
                         {
-                            t.HasCheckConstraint("CK_Places_Category_ExactlyOne", "(\"SystemCategory\" IS NOT NULL AND \"CustomCategoryId\" IS NULL) OR (\"SystemCategory\" IS NULL AND \"CustomCategoryId\" IS NOT NULL)");
-
                             t.HasCheckConstraint("CK_Places_Latitude", "\"Latitude\" >= -90 AND \"Latitude\" <= 90");
 
                             t.HasCheckConstraint("CK_Places_Longitude", "\"Longitude\" >= -180 AND \"Longitude\" <= 180");
 
                             t.HasCheckConstraint("CK_Places_Name_NotBlank", "length(btrim(\"Name\")) > 0");
-
-                            t.HasCheckConstraint("CK_Places_SystemCategory_Range", "\"SystemCategory\" IS NULL OR (\"SystemCategory\" >= 0 AND \"SystemCategory\" <= 8)");
                         });
                 });
 
@@ -592,17 +559,6 @@ namespace PROJECT2106.Migrations
                     b.Navigation("Post");
                 });
 
-            modelBuilder.Entity("PROJECT2106.Models.CustomCategory", b =>
-                {
-                    b.HasOne("PROJECT2106.Models.AppUser", "CreatedByUser")
-                        .WithMany("CreatedCustomCategories")
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedByUser");
-                });
-
             modelBuilder.Entity("PROJECT2106.Models.Follow", b =>
                 {
                     b.HasOne("PROJECT2106.Models.AppUser", "Follower")
@@ -649,14 +605,7 @@ namespace PROJECT2106.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("PROJECT2106.Models.CustomCategory", "CustomCategory")
-                        .WithMany("Places")
-                        .HasForeignKey("CustomCategoryId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("CreatedByUser");
-
-                    b.Navigation("CustomCategory");
                 });
 
             modelBuilder.Entity("PROJECT2106.Models.Post", b =>
@@ -692,8 +641,6 @@ namespace PROJECT2106.Migrations
 
             modelBuilder.Entity("PROJECT2106.Models.AppUser", b =>
                 {
-                    b.Navigation("CreatedCustomCategories");
-
                     b.Navigation("CreatedPlaces");
 
                     b.Navigation("Followers");
@@ -706,11 +653,6 @@ namespace PROJECT2106.Migrations
             modelBuilder.Entity("PROJECT2106.Models.Comment", b =>
                 {
                     b.Navigation("Replies");
-                });
-
-            modelBuilder.Entity("PROJECT2106.Models.CustomCategory", b =>
-                {
-                    b.Navigation("Places");
                 });
 
             modelBuilder.Entity("PROJECT2106.Models.Place", b =>

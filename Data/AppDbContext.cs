@@ -16,6 +16,8 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<ActivityLog> ActivityLogs { get; set; }
     public DbSet<Like> Likes { get; set; }
     public DbSet<Tag> Tags { get; set; }
+    public DbSet<Place> Places { get; set; }
+    public DbSet<CustomCategory> CustomCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -44,6 +46,55 @@ public class AppDbContext : IdentityDbContext<AppUser>
         builder.Entity<Tag>()
             .HasIndex(t => t.Name)
             .IsUnique();
+
+        builder.Entity<Place>()
+            .HasOne(p => p.CreatedByUser)
+            .WithMany(u => u.CreatedPlaces)
+            .HasForeignKey(p => p.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<CustomCategory>()
+            .HasOne(c => c.CreatedByUser)
+            .WithMany(u => u.CreatedCustomCategories)
+            .HasForeignKey(c => c.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Place>()
+            .HasOne(p => p.CustomCategory)
+            .WithMany(c => c.Places)
+            .HasForeignKey(p => p.CustomCategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Place>()
+            .HasMany(p => p.Posts)
+            .WithOne(p => p.Place)
+            .HasForeignKey(p => p.PlaceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Place>()
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Places_Latitude",
+                    "\"Latitude\" >= -90 AND \"Latitude\" <= 90");
+
+                t.HasCheckConstraint(
+                    "CK_Places_Longitude",
+                    "\"Longitude\" >= -180 AND \"Longitude\" <= 180");
+
+                t.HasCheckConstraint(
+                    "CK_Places_Name_NotBlank",
+                    "length(btrim(\"Name\")) > 0");
+
+                t.HasCheckConstraint(
+                    "CK_Places_Category_ExactlyOne",
+                    "(\"SystemCategory\" IS NOT NULL AND \"CustomCategoryId\" IS NULL) OR " +
+                    "(\"SystemCategory\" IS NULL AND \"CustomCategoryId\" IS NOT NULL)");
+
+                t.HasCheckConstraint(
+                    "CK_Places_SystemCategory_Range",
+                    "\"SystemCategory\" IS NULL OR (\"SystemCategory\" >= 0 AND \"SystemCategory\" <= 8)");
+            });
 
         builder.Entity<Post>()
             .HasMany(p => p.Tags)

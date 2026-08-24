@@ -1,0 +1,34 @@
+@model PROJECT2106.Models.Place
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<h2>@Model.Name</h2>
+
+<p>
+    <strong>Coordinates:</strong>
+    @Model.Latitude, @Model.Longitude
+</p>
+
+<p>
+    <strong>Category:</strong>
+
+    @if (Model.SystemCategory.HasValue)
+    {
+        @Model.SystemCategory
+    }
+    else
+    {
+        @Model.CustomCategory?.Name
+    }
+</p>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <p>@Model.Description</p>
+}
+
+<p class="text-muted">
+    Created by @Model.CreatedByUser?.UserName
+</p>

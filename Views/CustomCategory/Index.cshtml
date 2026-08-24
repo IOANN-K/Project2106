@@ -1,0 +1,33 @@
+@model IReadOnlyList<PROJECT2106.Models.CustomCategory>
+
+@{
+    ViewData["Title"] = "Custom Categories";
+}
+
+<h2>Custom Categories</h2>
+
+<a asp-action="Create" class="btn btn-primary mb-3">New Custom Category</a>
+
+@if (Model.Count == 0)
+{
+    <p>No custom categories yet.</p>
+}
+else
+{
+    <ul class="list-group">
+        @foreach (var category in Model)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@category.Name</span>
+
+                <form method="post" asp-action="Delete">
+                    <input type="hidden" name="id" value="@category.Id" />
+                    <button type="submit"
+                            class="btn btn-sm btn-outline-danger">
+                        Remove
+                    </button>
+                </form>
+            </li>
+        }
+    </ul>
+}

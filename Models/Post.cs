@@ -9,4 +9,7 @@ public class Post
     public AppUser? Author { get; set; }
     public List<Comment> Comments { get; set; } = new();
     public List<Tag> Tags { get; set; } = new();
+    public int? PlaceId { get; set; }
+    public Place? Place { get; set; }
+
 }
