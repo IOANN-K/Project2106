@@ -18,22 +18,37 @@
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label asp-for="Latitude" class="form-label"></label>
-            <input asp-for="Latitude"
-                class="form-control"
-                step="any" />
-            <span asp-validation-for="Latitude" class="text-danger"></span>
-        </div>
+    <input asp-for="Latitude" type="hidden" />
+    <input asp-for="Longitude" type="hidden" />
 
-        <div class="col-md-6 mb-3">
-            <label asp-for="Longitude" class="form-label"></label>
-            <input asp-for="Longitude"
-                class="form-control"
-                step="any" />
-            <span asp-validation-for="Longitude" class="text-danger"></span>
-        </div>
+    <div class="mb-3">
+        <label class="form-label">Selected location</label>
+
+        @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+        {
+            <div class="form-control bg-light">
+                @Model.Latitude.Value.ToString("F6"),
+                @Model.Longitude.Value.ToString("F6")
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning mb-2">
+                No map location selected.
+            </div>
+
+            <a asp-controller="Map"
+               asp-action="Index"
+               class="btn btn-outline-primary">
+                Select location on map
+            </a>
+        }
+
+        <span asp-validation-for="Latitude"
+              class="text-danger d-block"></span>
+
+        <span asp-validation-for="Longitude"
+              class="text-danger d-block"></span>
     </div>
 
     <div class="mb-3">
@@ -124,6 +139,11 @@
     </p>
 
     <button type="submit" class="btn btn-primary">Create Place</button>
+    <a asp-controller="Map"
+    asp-action="Index"
+    class="btn btn-secondary">
+        Cancel
+    </a>
 </form>
 
 @section Scripts {

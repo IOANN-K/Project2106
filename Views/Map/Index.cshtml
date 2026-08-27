@@ -29,7 +29,98 @@
             color: #6c757d;
             margin-bottom: 6px;
         }
-    </style>
+
+        .user-location-marker {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #0d6efd;
+            border: 3px solid #fff;
+            box-shadow:
+                0 0 0 4px rgba(13, 110, 253, 0.25),
+                0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-marker {
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 2px solid #fff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .map-marker-symbol {
+        transform: rotate(45deg);
+        font-size: 15px;
+        line-height: 1;
+    }
+
+    .marker-nature {
+        background: #2e8b57;
+    }
+
+    .marker-landmark {
+        background: #795548;
+    }
+
+    .marker-viewpoint {
+        background: #1976d2;
+    }
+
+    .marker-food {
+        background: #e65100;
+    }
+
+    .marker-shop {
+        background: #7b1fa2;
+    }
+
+    .marker-abandoned {
+        background: #616161;
+    }
+
+    .marker-camping {
+        background: #558b2f;
+    }
+
+    .marker-photospot {
+        background: #00838f;
+    }
+
+    .marker-other {
+        background: #546e7a;
+    }
+
+    .marker-custom {
+        background: #c2185b;
+    }
+
+    .map-legend {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 10px 12px;
+        border-radius: 8px;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .map-legend-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .map-legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex: 0 0 12px;
+    }
+        </style>
 }
 
 <div class="container-fluid py-3">
@@ -66,6 +157,328 @@
                 }
             ).addTo(map);
 
+            const userLocationIcon = L.divIcon({
+                className: "",
+                html: '<div class="user-location-marker"></div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
+
+            let userLocationMarker = null;
+
+            function showUserLocation() {
+                if (!navigator.geolocation) {
+                    console.info(
+                        "Geolocation is not supported by this browser."
+                    );
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+
+                        if (userLocationMarker) {
+                            userLocationMarker.setLatLng([
+                                latitude,
+                                longitude
+                            ]);
+                        } else {
+                            userLocationMarker = L.marker(
+                                [latitude, longitude],
+                                {
+                                    icon: userLocationIcon,
+                                    interactive: true,
+                                    zIndexOffset: 1000
+                                }
+                            )
+                                .bindPopup("You are here")
+                                .addTo(map);
+                        }
+
+                        map.setView(
+                            [latitude, longitude],
+                            Math.max(map.getZoom(), 14)
+                        );
+                    },
+                    error => {
+                        console.info(
+                            "User location is unavailable.",
+                            error.message
+                        );
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            }
+
+            const markerPresentation = {
+                Nature: {
+                    cssClass: "marker-nature",
+                    symbol: "N"
+                },
+                Landmark: {
+                    cssClass: "marker-landmark",
+                    symbol: "L"
+                },
+                Viewpoint: {
+                    cssClass: "marker-viewpoint",
+                    symbol: "V"
+                },
+                Food: {
+                    cssClass: "marker-food",
+                    symbol: "F"
+                },
+                Shop: {
+                    cssClass: "marker-shop",
+                    symbol: "S"
+                },
+                Abandoned: {
+                    cssClass: "marker-abandoned",
+                    symbol: "A"
+                },
+                Camping: {
+                    cssClass: "marker-camping",
+                    symbol: "C"
+                },
+                PhotoSpot: {
+                    cssClass: "marker-photospot",
+                    symbol: "P"
+                },
+                Other: {
+                    cssClass: "marker-other",
+                    symbol: "O"
+                }
+            };
+
+            function createPlaceIcon(place) {
+                const presentation = place.isCustomCategory
+                    ? {
+                        cssClass: "marker-custom",
+                        symbol: "★"
+                    }
+                    : markerPresentation[place.category]
+                        ?? markerPresentation.Other;
+
+                return L.divIcon({
+                    className: "",
+                    html: `
+                        <div class="map-marker ${presentation.cssClass}">
+                            <span class="map-marker-symbol">
+                                ${presentation.symbol}
+                            </span>
+                        </div>
+                    `,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -30]
+                });
+            }
+
+            const legend = L.control({
+                position: "bottomright"
+            });
+
+            legend.onAdd = function () {
+                const container = L.DomUtil.create(
+                    "div",
+                    "map-legend"
+                );
+
+                const entries = [
+                    ["marker-nature", "Nature"],
+                    ["marker-landmark", "Landmark"],
+                    ["marker-viewpoint", "Viewpoint"],
+                    ["marker-food", "Food"],
+                    ["marker-shop", "Shop"],
+                    ["marker-abandoned", "Abandoned"],
+                    ["marker-camping", "Camping"],
+                    ["marker-photospot", "Photo Spot"],
+                    ["marker-other", "Other"],
+                    ["marker-custom", "Custom category"]
+                ];
+
+                for (const [cssClass, label] of entries) {
+                    const row = document.createElement("div");
+                    row.className = "map-legend-row";
+
+                    const dot = document.createElement("span");
+                    dot.className = `map-legend-dot ${cssClass}`;
+
+                    const text = document.createElement("span");
+                    text.textContent = label;
+
+                    row.appendChild(dot);
+                    row.appendChild(text);
+                    container.appendChild(row);
+                }
+
+                return container;
+            };
+
+            legend.addTo(map);
+
+            const locationControl = L.control({
+                position: "topleft"
+            });
+
+            locationControl.onAdd = function () {
+                const button = L.DomUtil.create(
+                    "button",
+                    "btn btn-light shadow-sm"
+                );
+
+                button.type = "button";
+                button.title = "Show my location";
+                button.setAttribute(
+                    "aria-label",
+                    "Show my location"
+                );
+                button.textContent = "My location";
+
+                L.DomEvent.disableClickPropagation(button);
+
+                L.DomEvent.on(button, "click", function (event) {
+                    L.DomEvent.stop(event);
+                    showUserLocation();
+                });
+
+                return button;
+            };
+
+            locationControl.addTo(map);
+
+            const canCreatePlace =
+                @(User.Identity?.IsAuthenticated == true ? "true" : "false");
+
+            let selectedLocationMarker = null;
+
+            map.on("click", async function (event) {
+                const latitude = event.latlng.lat;
+                const longitude = event.latlng.lng;
+
+                let nearbyPlaces = [];
+
+                try {
+                    const nearbyResponse = await fetch(
+                        `/Map/Nearby?latitude=${encodeURIComponent(latitude)}`
+                        + `&longitude=${encodeURIComponent(longitude)}`,
+                        {
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        }
+                    );
+
+                    if (nearbyResponse.ok) {
+                        nearbyPlaces = await nearbyResponse.json();
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to check nearby places.",
+                        error
+                    );
+                }
+
+                if (selectedLocationMarker) {
+                    map.removeLayer(selectedLocationMarker);
+                }
+
+                selectedLocationMarker = L.marker(
+                    [latitude, longitude]
+                ).addTo(map);
+
+                const popup = document.createElement("div");
+
+                const title = document.createElement("div");
+                title.className = "place-popup-name";
+                title.textContent = "Selected location";
+
+                const coordinates = document.createElement("div");
+                coordinates.className = "place-popup-category";
+                coordinates.textContent =
+                    `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+                popup.appendChild(title);
+                popup.appendChild(coordinates);
+
+                if (nearbyPlaces.length > 0) {
+                    const warning = document.createElement("div");
+                    warning.className = "alert alert-warning py-2 mt-2 mb-2";
+
+                    const warningTitle = document.createElement("strong");
+                    warningTitle.textContent = "Nearby places found";
+
+                    warning.appendChild(warningTitle);
+
+                    const list = document.createElement("div");
+                    list.className = "mt-2";
+
+                    for (const nearbyPlace of nearbyPlaces) {
+                        const item = document.createElement("div");
+                        item.className =
+                            "d-flex justify-content-between align-items-center gap-2 mb-1";
+
+                        const info = document.createElement("span");
+
+                        const distance =
+                            nearbyPlace.distanceMeters < 10
+                                ? nearbyPlace.distanceMeters.toFixed(1)
+                                : nearbyPlace.distanceMeters.toFixed(0);
+
+                        info.textContent =
+                            `${nearbyPlace.name} — ${distance} m`;
+
+                        const openLink = document.createElement("a");
+                        openLink.href =
+                            `/Place/Details/${nearbyPlace.id}`;
+
+                        openLink.textContent = "Open";
+                        openLink.className =
+                            "btn btn-sm btn-outline-secondary";
+
+                        item.appendChild(info);
+                        item.appendChild(openLink);
+
+                        list.appendChild(item);
+                    }
+
+                    warning.appendChild(list);
+                    popup.appendChild(warning);
+                }
+
+                if (canCreatePlace) {
+                    const addButton = document.createElement("a");
+
+                    addButton.className = "btn btn-sm btn-primary";
+
+                    addButton.textContent =
+                        nearbyPlaces.length > 0
+                            ? "Create anyway"
+                            : "Add Place";
+                    addButton.href =
+                        `/Place/Create?latitude=${encodeURIComponent(latitude)}`
+                        + `&longitude=${encodeURIComponent(longitude)}`;
+
+                    popup.appendChild(addButton);
+                } else {
+                    const message = document.createElement("div");
+                    message.className = "text-muted";
+                    message.textContent =
+                        "Sign in to add a place.";
+
+                    popup.appendChild(message);
+                }
+
+                selectedLocationMarker
+                    .bindPopup(popup)
+                    .openPopup();
+            });
+
             try {
                 const response = await fetch("/Map/Markers", {
                     headers: {
@@ -87,7 +500,11 @@
                     const marker = L.marker([
                         place.latitude,
                         place.longitude
-                    ]);
+                    ],
+                    {
+                        icon: createPlaceIcon(place)
+                    }
+                );
 
                     const rating =
                         place.rating == null

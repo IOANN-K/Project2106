@@ -140,19 +140,28 @@ public class PostController : Controller
     [Authorize]
     public async Task<IActionResult> Create(int? placeId)
     {
-        if (placeId.HasValue)
+        if (!placeId.HasValue)
         {
-            var placeExists = await _db.Places
-                .AsNoTracking()
-                .AnyAsync(p => p.Id == placeId.Value);
-
-            if (!placeExists)
-                return NotFound();
+            return RedirectToAction("Index", "Map");
         }
+
+        var place = await _db.Places
+            .AsNoTracking()
+            .Where(p => p.Id == placeId.Value)
+            .Select(p => new
+            {
+                p.Id,
+                p.Name
+            })
+            .FirstOrDefaultAsync();
+
+        if (place == null)
+            return NotFound();
 
         return View(new PostCreateViewModel
         {
-            PlaceId = placeId
+            PlaceId = place.Id,
+            PlaceName = place.Name
         });
     }
 
@@ -165,13 +174,23 @@ public class PostController : Controller
         if (userId == null)
             return Forbid();
 
-        if (model.PlaceId.HasValue)
-        {
-            var placeExists = await _db.Places
-                .AsNoTracking()
-                .AnyAsync(p => p.Id == model.PlaceId.Value);
+        string? placeName = null;
 
-            if (!placeExists)
+        if (!model.PlaceId.HasValue)
+        {
+            ModelState.AddModelError(
+                nameof(model.PlaceId),
+                "Place is required.");
+        }
+        else
+        {
+            placeName = await _db.Places
+                .AsNoTracking()
+                .Where(p => p.Id == model.PlaceId.Value)
+                .Select(p => p.Name)
+                .FirstOrDefaultAsync();
+
+            if (placeName == null)
             {
                 ModelState.AddModelError(
                     nameof(model.PlaceId),
@@ -180,14 +199,17 @@ public class PostController : Controller
         }
 
         if (!ModelState.IsValid)
+        {
+            model.PlaceName = placeName ?? string.Empty;
             return View(model);
+        }
 
         var post = new Post
         {
             Content = model.Content.Trim(),
             CreatedAt = DateTime.Now,
             AuthorId = userId,
-            PlaceId = model.PlaceId
+            PlaceId = model.PlaceId!.Value
         };
 
         _db.Posts.Add(post);
@@ -214,15 +236,10 @@ public class PostController : Controller
 
         _logger.LogInformation("Created post #{Id}", post.Id);
 
-        if (post.PlaceId.HasValue)
-        {
-            return RedirectToAction(
-                "Details",
-                "Place",
-                new { id = post.PlaceId.Value });
-        }
-
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(
+            "Details",
+            "Place",
+            new { id = post.PlaceId!.Value });
     }
 
     // GET /Post/Edit/1

@@ -1,6 +1,6 @@
 namespace PROJECT2106.ViewModels;
 
-public sealed class PlaceMarkerViewModel
+public sealed class NearbyPlaceViewModel
 {
     public int Id { get; init; }
 
@@ -10,9 +10,5 @@ public sealed class PlaceMarkerViewModel
 
     public double Longitude { get; init; }
 
-    public string Category { get; init; } = string.Empty;
-
-    public bool IsCustomCategory { get; init; }
-
-    public double? Rating { get; init; }
+    public double DistanceMeters { get; init; }
 }

@@ -23,10 +23,14 @@ public class PlaceController : Controller
 
     [HttpGet]
     [Authorize]
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(
+        double? latitude,
+        double? longitude)
     {
         var model = new PlaceCreateViewModel
         {
+            Latitude = latitude,
+            Longitude = longitude,
             CustomCategories = await GetCustomCategoriesAsync()
         };
 
