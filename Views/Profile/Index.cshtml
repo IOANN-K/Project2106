@@ -390,6 +390,41 @@
             </div>
         }
 
+        @if (Model.ContributionTotalPages > 1)
+        {
+            <nav class="mt-4">
+                <ul class="pagination">
+
+                    <li class="page-item @(Model.ContributionPage > 1 ? "" : "disabled")">
+                        <a class="page-link"
+                           asp-controller="Profile"
+                           asp-action="Index"
+                           asp-route-username="@Model.User.UserName"
+                           asp-route-page="@(Model.ContributionPage - 1)">
+                            Previous
+                        </a>
+                    </li>
+
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            @Model.ContributionPage / @Model.ContributionTotalPages
+                        </span>
+                    </li>
+
+                    <li class="page-item @(Model.ContributionPage < Model.ContributionTotalPages ? "" : "disabled")">
+                        <a class="page-link"
+                           asp-controller="Profile"
+                           asp-action="Index"
+                           asp-route-username="@Model.User.UserName"
+                           asp-route-page="@(Model.ContributionPage + 1)">
+                            Next
+                        </a>
+                    </li>
+
+                </ul>
+            </nav>
+        }
+
     </section>
 
 </div>

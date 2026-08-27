@@ -130,8 +130,14 @@ public class PlaceController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id, string sort = "newest")
+    public async Task<IActionResult> Details(
+        int id,
+        string sort = "newest",
+        int page = 1)
     {
+        const int pageSize = 10;
+        page = Math.Max(page, 1);
+
         var place = await _db.Places
             .AsNoTracking()
             .Include(p => p.CreatedByUser)
@@ -145,9 +151,12 @@ public class PlaceController : Controller
             .AsNoTracking()
             .Where(p => p.PlaceId == id)
             .Include(p => p.Author)
-            .Include(p => p.Comments)
             .Include(p => p.Media.OrderBy(m => m.SortOrder))
             .AsQueryable();
+
+        var totalPostCount = await _db.Posts
+            .AsNoTracking()
+            .CountAsync(p => p.PlaceId == id);
 
         postsQuery = sort switch
         {
@@ -176,6 +185,8 @@ public class PlaceController : Controller
         };
 
         var posts = await postsQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new PlacePostListItemViewModel
             {
                 Post = p,
@@ -185,7 +196,8 @@ public class PlaceController : Controller
                 DislikeCount = _db.Likes.Count(l =>
                     l.PostId == p.Id &&
                     !l.IsLike),
-                CommentCount = p.Comments.Count
+                CommentCount = _db.Comments.Count(c =>
+                    c.PostId == p.Id)
             })
             .ToListAsync();
 
@@ -222,7 +234,10 @@ public class PlaceController : Controller
         {
             Place = place,
             Posts = posts,
-            PostCount = posts.Count,
+            PostCount = totalPostCount,
+            PostPage = page,
+            PostPageSize = pageSize,
+            TotalPostCount = totalPostCount,
             Sort = normalizedSort,
             AverageRating = ratingStats?.Average,
             RatingCount = ratingStats?.Count ?? 0,
@@ -295,12 +310,22 @@ public async Task<IActionResult> Search(
     SystemCategory? systemCategory,
     int? customCategoryId,
     int? minimumRating,
-    string sort = "newest")
+    string sort = "newest",
+    int page = 1)
 {
+    const int pageSize = 20;
+    page = Math.Max(page, 1);
+
     if (systemCategory.HasValue &&
         !Enum.IsDefined(systemCategory.Value))
     {
         systemCategory = null;
+    }
+
+    if (systemCategory.HasValue &&
+        customCategoryId.HasValue)
+    {
+        customCategoryId = null;
     }
 
     if (minimumRating is < 1 or > 5)
@@ -361,6 +386,8 @@ public async Task<IActionResult> Search(
             p.AverageRating.Value >= minimumRating.Value);
     }
 
+    var totalItems = await placesQuery.CountAsync();
+
     var normalizedSort =
         string.Equals(
             sort,
@@ -379,6 +406,8 @@ public async Task<IActionResult> Search(
             .OrderByDescending(p => p.CreatedAt);
 
     var results = await placesQuery
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
         .Select(p => new PlaceSearchResultViewModel
         {
             Id = p.Id,
@@ -408,7 +437,13 @@ public async Task<IActionResult> Search(
         MinimumRating = minimumRating,
         Sort = normalizedSort,
         CustomCategories = customCategories,
-        Results = results
+        Results = new PagedResult<PlaceSearchResultViewModel>
+        {
+            Items = results,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems
+        }
     });
 }
 

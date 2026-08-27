@@ -1,4 +1,4 @@
-@model List<PROJECT2106.Models.Post>
+@model PROJECT2106.ViewModels.PagedResult<PROJECT2106.ViewModels.PostListItemViewModel>
 
 @{
     ViewData["Title"] = "Post Feed";
@@ -19,7 +19,7 @@
         + New Post
     </a>
 
-    @foreach (var post in Model)
+    @foreach (var post in Model.Items)
     {
         <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 8px;">
             <p>@post.Content</p>
@@ -29,16 +29,48 @@
                 <div style="margin-top:5px;">
                     @foreach (var tag in post.Tags)
                     {
-                        <a asp-action="Index" asp-route-tag="@tag.Name" class="badge bg-secondary text-decoration-none" style="margin-right:3px;">@tag.Name</a>
+                        <a asp-action="Index"
+                           asp-route-tag="@tag"
+                           class="badge bg-secondary text-decoration-none"
+                           style="margin-right:3px;">@tag</a>
                     }
                 </div>
             }
             <br /><br />
-            <a asp-action="Details" asp-route-id="@post.Id">Comments (@(post.Comments?.Count ?? 0))</a>
+            <a asp-action="Details"
+               asp-route-id="@post.Id">
+                Comments (@post.CommentCount)
+            </a>
             @if (User.Identity!.IsAuthenticated && (post.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
             {
                 <a asp-action="Edit" asp-route-id="@post.Id" style="margin-left: 10px;">Edit</a>
                 <a asp-action="Delete" asp-route-id="@post.Id" style="margin-left: 10px; color: red;">Delete</a>
             }
         </div>
-}   
+    }
+
+@{
+    var previous =
+        Url.Action("Index", new
+        {
+            tag = ViewBag.CurrentTag,
+            page = Model.Page - 1
+        });
+
+    var next =
+        Url.Action("Index", new
+        {
+            tag = ViewBag.CurrentTag,
+            page = Model.Page + 1
+        });
+}
+
+<partial name="_Pager"
+         model="new {
+             Model.Page,
+             Model.TotalPages,
+             Model.HasPreviousPage,
+             Model.HasNextPage,
+             PreviousUrl = previous,
+             NextUrl = next
+         }" />

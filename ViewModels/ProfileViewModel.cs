@@ -14,6 +14,17 @@ public sealed class ProfileViewModel
 
     public int ContributionsCount { get; init; }
 
+    public int ContributionPage { get; init; }
+
+    public int ContributionPageSize { get; init; }
+
+    public int ContributionTotalPages =>
+        ContributionsCount == 0
+            ? 0
+            : (int)Math.Ceiling(
+                ContributionsCount /
+                (double)ContributionPageSize);
+
     public int CreatedPlacesCount { get; init; }
 
     public int FollowersCount { get; init; }

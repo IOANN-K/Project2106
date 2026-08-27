@@ -19,17 +19,42 @@ public class AdminController : Controller
         _userManager = userManager;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1)
     {
-        var users = await _userManager.Users.ToListAsync();
-        var posts = await _db.Posts.CountAsync();
-        var comments = await _db.Comments.CountAsync();
+        const int pageSize = 25;
+        page = Math.Max(page, 1);
 
-        ViewBag.UserCount = users.Count;
-        ViewBag.PostCount = posts;
-        ViewBag.CommentCount = comments;
-        ViewBag.Users = users;
+        var userQuery = _userManager.Users
+            .AsNoTracking();
 
-        return View();
+        var userCount = await userQuery.CountAsync();
+
+        var users = await userQuery
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var model = new ViewModels.AdminDashboardViewModel
+        {
+            UserCount = userCount,
+            PostCount = await _db.Posts
+                .AsNoTracking()
+                .CountAsync(),
+
+            CommentCount = await _db.Comments
+                .AsNoTracking()
+                .CountAsync(),
+
+            Users = new ViewModels.PagedResult<AppUser>
+            {
+                Items = users,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = userCount
+            }
+        };
+
+        return View(model);
     }
 }

@@ -1,9 +1,17 @@
-﻿<!DOCTYPE html>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    string NavClass(string controller, string? action = null) =>
+        currentController == controller && (action == null || currentAction == action) ? "nav-link active" : "nav-link";
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PROJECT2106</title>
+    <meta name="theme-color" content="#174f3a" />
+    <title>@ViewData["Title"] - Atlas</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -11,124 +19,92 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PROJECT2106</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg app-navbar" aria-label="Primary navigation">
+            <div class="container-xl">
+                <a class="navbar-brand brand-lockup" asp-area="" asp-controller="Home" asp-action="Index" aria-label="Atlas home">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><path d="M12 2 3.5 21l8.5-4.1 8.5 4.1L12 2Zm0 5.2 3.9 8.8-3.9-1.9L8.1 16 12 7.2Z"/></svg>
+                    </span>
+                    <span><strong>Atlas</strong><small>Explorer Network</small></span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#atlasNavigation"
+                        aria-controls="atlasNavigation" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Post" asp-action="Index">Posts</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link"
-                               asp-controller="Map"
-                               asp-action="Index">
-                                Explore
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link"
-                               asp-controller="Place"
-                               asp-action="Search">
-                                Find Places
-                            </a>
-                        </li>
-
-                        @if (User.Identity!.IsAuthenticated)
+                <div class="collapse navbar-collapse" id="atlasNavigation">
+                    <ul class="navbar-nav app-nav-links me-auto">
+                        <li class="nav-item"><a class="@NavClass("Map", "Index")" asp-controller="Map" asp-action="Index">Explore</a></li>
+                        <li class="nav-item"><a class="@NavClass("Place", "Search")" asp-controller="Place" asp-action="Search">Find Places</a></li>
+                        <li class="nav-item"><a class="@NavClass("Post", "Feed")" asp-controller="Post" asp-action="Feed">Feed</a></li>
+                        @if (isAuthenticated)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Post" asp-action="Feed">My Feed</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   asp-controller="Notification"
-                                   asp-action="Index">
-                                    Notifications
-                                </a>
-                            </li>
+                            <li class="nav-item"><a class="@NavClass("Map", "My")" asp-controller="Map" asp-action="My">My Map</a></li>
+                            <li class="nav-item"><a class="@NavClass("Notification")" asp-controller="Notification" asp-action="Index">Notifications</a></li>
                         }
-
-                        <form class="d-flex" method="get" asp-controller="Profile" asp-action="Search">
-                            <input class="form-control me-2" type="search" name="query" placeholder="Search Users" aria-label="Search">
-                            <button class="btn btn-outline-success" type="submit">Search</button>
-                        </form>
-                        
                     </ul>
-                    <ul class="navbar-nav" ms-auto>
-                        @if (User.Identity.IsAuthenticated)
+                    <div class="navbar-actions">
+                        <form class="nav-search" method="get" asp-controller="Profile" asp-action="Search" role="search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+                            <input type="search" name="query" placeholder="Search explorers" aria-label="Search explorers" />
+                        </form>
+                        @if (isAuthenticated)
                         {
-                            <li class="nav-item">
-                                <form method="post" asp-controller="Account" asp-action="Logout">
-                                    <button type="submit" class="btn btn-link nav-link">Logout</button>
-                                </form>
-                                </li>
+                            <a asp-controller="Place" asp-action="Create" class="btn btn-primary nav-cta">Add place</a>
+                            <div class="dropdown">
+                                <button class="account-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="avatar avatar-sm">@((User.Identity?.Name ?? "A")[..1].ToUpperInvariant())</span>
+                                    <span class="account-name">@(User.Identity?.Name ?? "Account")</span>
+                                    <span aria-hidden="true">⌄</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index" asp-route-username="@User.Identity?.Name">Profile</a></li>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Admin</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><form method="post" asp-controller="Account" asp-action="Logout"><button type="submit" class="dropdown-item">Log out</button></form></li>
+                                </ul>
+                            </div>
                         }
                         else
                         {
-                            <li class="nav-item">
-                                <a class="nav-link " asp-area="" asp-controller="Account" asp-action="Login">Login</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link " asp-area="" asp-controller="Account" asp-action="Register">Register</a>
-                            </li>
+                            <a class="btn btn-quiet" asp-controller="Account" asp-action="Login">Log in</a>
+                            <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Join Atlas</a>
                         }
-
-                    </ul>
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PROJECT2106 - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <main id="main-content" class="site-main" role="main">@RenderBody()</main>
+    <footer class="site-footer">
+        <div class="container-xl footer-inner">
+            <div><strong>Atlas</strong> <span>Explorer Network</span></div>
+            <div>&copy; 2026 PROJECT2106 · <a asp-controller="Home" asp-action="Privacy">Privacy</a></div>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll(".post-media-image").forEach(image => {
-            image.addEventListener("error", function () {
-                this.classList.add("d-none");
-
-                const fallback =
-                    this.parentElement.querySelector(".post-media-fallback");
-
-                fallback?.classList.remove("d-none");
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".post-media-image, .profile-avatar-image").forEach(image => {
+                image.addEventListener("error", function () {
+                    this.classList.add("d-none");
+                    this.parentElement?.querySelector(".post-media-fallback, .avatar-fallback")?.classList.remove("d-none");
+                });
+            });
+            document.querySelectorAll(".post-media-video").forEach(video => {
+                video.addEventListener("error", function () {
+                    this.classList.add("d-none");
+                    this.parentElement?.querySelector(".post-media-fallback")?.classList.remove("d-none");
+                });
             });
         });
-
-        document.querySelectorAll(".post-media-video").forEach(video => {
-            video.addEventListener("error", function () {
-                this.classList.add("d-none");
-
-                const fallback =
-                    this.parentElement.querySelector(".post-media-fallback");
-
-                fallback?.classList.remove("d-none");
-            });
-        });
-    });
-</script>
-
+    </script>
 </body>
 </html>

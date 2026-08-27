@@ -81,8 +81,10 @@ app.MapControllerRoute(
 
 
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
+
     var bootstrapService =
         scope.ServiceProvider.GetRequiredService<IdentityBootstrapService>();
 
@@ -90,3 +92,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+public partial class Program
+{
+}

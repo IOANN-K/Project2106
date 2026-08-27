@@ -165,7 +165,7 @@
 
     </form>
 
-    @if (Model.Results.Count == 0)
+    @if (Model.Results.Items.Count == 0)
     {
         <div class="card">
             <div class="card-body text-center py-5">
@@ -191,7 +191,7 @@
     {
         <div class="d-grid gap-3">
 
-            @foreach (var place in Model.Results)
+            @foreach (var place in Model.Results.Items)
             {
                 <article class="card">
 
@@ -280,6 +280,45 @@
             }
 
         </div>
+    }
+
+    @if (Model.Results.TotalPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination">
+                <li class="page-item @(Model.Results.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Search"
+                       asp-route-query="@Model.Query"
+                       asp-route-systemCategory="@Model.SystemCategory"
+                       asp-route-customCategoryId="@Model.CustomCategoryId"
+                       asp-route-minimumRating="@Model.MinimumRating"
+                       asp-route-sort="@Model.Sort"
+                       asp-route-page="@(Model.Results.Page - 1)">
+                        Previous
+                    </a>
+                </li>
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        @Model.Results.Page / @Model.Results.TotalPages
+                    </span>
+                </li>
+
+                <li class="page-item @(Model.Results.HasNextPage ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Search"
+                       asp-route-query="@Model.Query"
+                       asp-route-systemCategory="@Model.SystemCategory"
+                       asp-route-customCategoryId="@Model.CustomCategoryId"
+                       asp-route-minimumRating="@Model.MinimumRating"
+                       asp-route-sort="@Model.Sort"
+                       asp-route-page="@(Model.Results.Page + 1)">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
     }
 
 </div>

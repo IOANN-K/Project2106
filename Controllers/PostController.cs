@@ -98,23 +98,67 @@ public class PostController : Controller
     }
 
     // GET /Post
-    public async Task<IActionResult> Index(string? tag)
+    public async Task<IActionResult> Index(
+        string? tag,
+        int page = 1)
     {
+        const int pageSize = 20;
+
+        page = Math.Max(page, 1);
+
+        var normalizedTag = tag?
+            .Trim()
+            .ToLowerInvariant();
+
         var query = _db.Posts
-            .Include(p => p.Author)
-            .Include(p => p.Comments)
-            .Include(p => p.Tags)
+            .AsNoTracking()
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(tag))
-            query = query.Where(p => p.Tags.Any(t => t.Name == tag.ToLower()));
+        if (!string.IsNullOrWhiteSpace(normalizedTag))
+        {
+            query = query.Where(p =>
+                p.Tags.Any(t => t.Name == normalizedTag));
+        }
 
-        var posts = await query
+        var totalItems = await query.CountAsync();
+
+        var items = await query
             .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new PostListItemViewModel
+            {
+                Id = p.Id,
+                AuthorId = p.AuthorId,
+
+                AuthorUsername =
+                    p.Author != null &&
+                    p.Author.UserName != null
+                        ? p.Author.UserName
+                        : "Unknown",
+
+                Content = p.Content,
+                CreatedAt = p.CreatedAt,
+
+                CommentCount = _db.Comments.Count(c =>
+                    c.PostId == p.Id),
+
+                Tags = p.Tags
+                    .OrderBy(t => t.Name)
+                    .Select(t => t.Name)
+                    .ToList()
+            })
             .ToListAsync();
 
-        ViewBag.CurrentTag = tag;
-        return View(posts);
+        ViewBag.CurrentTag = normalizedTag;
+
+        return View(new PagedResult<PostListItemViewModel>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems
+        });
     }
 
     // GET /Post/Details/1
@@ -637,22 +681,31 @@ public class PostController : Controller
     }
 
     [Authorize]
-    public async Task<IActionResult> Feed()
+    public async Task<IActionResult> Feed(int page = 1)
     {
+        const int pageSize = 20;
+        page = Math.Max(page, 1);
+
         var userId = _userManager.GetUserId(User);
 
         if (userId == null)
             return Forbid();
 
-        var feed = await _db.Posts
+        var query = _db.Posts
             .AsNoTracking()
             .Where(p =>
                 p.PlaceId.HasValue &&
                 p.AuthorId != null &&
                 _db.Follows.Any(f =>
                     f.FollowerId == userId &&
-                    f.FollowingId == p.AuthorId))
+                    f.FollowingId == p.AuthorId));
+
+        var totalItems = await query.CountAsync();
+
+        var feed = await query
             .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new FeedItemViewModel
             {
                 PostId = p.Id,
@@ -707,6 +760,12 @@ public class PostController : Controller
             })
             .ToListAsync();
 
-        return View(feed);
+        return View(new PagedResult<FeedItemViewModel>
+        {
+            Items = feed,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems
+        });
     }
 }

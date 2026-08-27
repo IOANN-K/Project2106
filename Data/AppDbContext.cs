@@ -42,9 +42,22 @@ public class AppDbContext : IdentityDbContext<AppUser>
             .HasIndex(f => new { f.FollowerId, f.FollowingId })
             .IsUnique();
 
+        builder.Entity<Follow>()
+            .HasIndex(f => f.FollowingId);
+
         builder.Entity<Like>()
             .HasIndex(l => new { l.UserId, l.PostId })
             .IsUnique();
+
+        builder.Entity<Like>()
+            .HasIndex(l => new
+            {
+                l.PostId,
+                l.IsLike
+            });
+
+        builder.Entity<Comment>()
+            .HasIndex(c => c.PostId);
 
         builder.Entity<Tag>()
             .HasIndex(t => t.Name)
@@ -73,6 +86,13 @@ public class AppDbContext : IdentityDbContext<AppUser>
             .WithOne(p => p.Place)
             .HasForeignKey(p => p.PlaceId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Place>()
+            .HasIndex(p => new
+            {
+                p.CreatedByUserId,
+                p.CreatedAt
+            });
 
         builder.Entity<Place>()
             .ToTable(t =>
@@ -124,6 +144,23 @@ public class AppDbContext : IdentityDbContext<AppUser>
             .HasMany(p => p.Tags)
             .WithMany(t => t.Posts)
             .UsingEntity(j => j.ToTable("PostTags"));
+
+        builder.Entity<Post>()
+            .HasIndex(p => new
+            {
+                p.PlaceId,
+                p.CreatedAt
+            });
+
+        builder.Entity<Post>()
+            .HasIndex(p => new
+            {
+                p.AuthorId,
+                p.CreatedAt
+            });
+
+        builder.Entity<Post>()
+            .HasIndex(p => p.CreatedAt);
 
         builder.Entity<PlaceRating>()
         .HasOne(r => r.Place)

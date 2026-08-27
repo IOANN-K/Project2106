@@ -323,4 +323,39 @@
         </div>
     }
 
+    @if (Model.TotalPostPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination">
+
+                <li class="page-item @(Model.PostPage > 1 ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Details"
+                       asp-route-id="@Model.Place.Id"
+                       asp-route-sort="@Model.Sort"
+                       asp-route-page="@(Model.PostPage - 1)">
+                        Previous
+                    </a>
+                </li>
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        @Model.PostPage / @Model.TotalPostPages
+                    </span>
+                </li>
+
+                <li class="page-item @(Model.PostPage < Model.TotalPostPages ? "" : "disabled")">
+                    <a class="page-link"
+                       asp-action="Details"
+                       asp-route-id="@Model.Place.Id"
+                       asp-route-sort="@Model.Sort"
+                       asp-route-page="@(Model.PostPage + 1)">
+                        Next
+                    </a>
+                </li>
+
+            </ul>
+        </nav>
+    }
+
 </div>

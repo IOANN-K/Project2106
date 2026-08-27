@@ -8,142 +8,22 @@
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         crossorigin="" />
-
-    <style>
-        #explore-map {
-            width: 100%;
-            height: calc(100vh - 160px);
-            min-height: 500px;
-            border-radius: 12px;
-        }
-
-        .explore-header {
-            margin-bottom: 1rem;
-        }
-
-        .map-shell {
-            position: relative;
-        }
-
-        .map-empty-state {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            z-index: 1100;
-            width: calc(100% - 2rem);
-            max-width: 440px;
-            transform: translate(-50%, -50%);
-        }
-
-        .place-popup-name {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .place-popup-category {
-            color: #6c757d;
-            margin-bottom: 6px;
-        }
-
-        .user-location-marker {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #0d6efd;
-            border: 3px solid #fff;
-            box-shadow:
-                0 0 0 4px rgba(13, 110, 253, 0.25),
-                0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .map-marker {
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 2px solid #fff;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .map-marker-symbol {
-        transform: rotate(45deg);
-        font-size: 15px;
-        line-height: 1;
-    }
-
-    .marker-nature {
-        background: #2e8b57;
-    }
-
-    .marker-landmark {
-        background: #795548;
-    }
-
-    .marker-viewpoint {
-        background: #1976d2;
-    }
-
-    .marker-food {
-        background: #e65100;
-    }
-
-    .marker-shop {
-        background: #7b1fa2;
-    }
-
-    .marker-abandoned {
-        background: #616161;
-    }
-
-    .marker-camping {
-        background: #558b2f;
-    }
-
-    .marker-photospot {
-        background: #00838f;
-    }
-
-    .marker-other {
-        background: #546e7a;
-    }
-
-    .marker-custom {
-        background: #c2185b;
-    }
-
-    .map-legend {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 10px 12px;
-        border-radius: 8px;
-        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
-        font-size: 13px;
-        line-height: 1.5;
-    }
-
-    .map-legend-row {
-        display: flex;
-        align-items: center;
-        gap: 7px;
-    }
-
-    .map-legend-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        flex: 0 0 12px;
-    }
-        </style>
 }
 
-<div class="container-fluid py-3">
+<div class="map-page">
     <div class="explore-header">
-        <h1 class="h3 mb-1">Explore</h1>
-        <p class="text-muted mb-0">
-            Discover places shared by the community.
-        </p>
+        <div>
+            <span class="mode-badge">@(isMyMap ? "My map" : "Global map")</span>
+            <h1 class="page-title page-title-sm mt-2">@(isMyMap ? "Your explored world" : "Explore the map")</h1>
+            <p class="page-subtitle">@(isMyMap ? "Places you created or contributed to." : "Discover places shared by explorers around the world.")</p>
+        </div>
+        <div class="action-toolbar">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Map" asp-action="@(isMyMap ? "Index" : "My")" class="btn btn-outline-secondary">@(isMyMap ? "Global map" : "My map")</a>
+                <a asp-controller="Place" asp-action="Create" class="btn btn-primary">Add place</a>
+            }
+        </div>
     </div>
 
     <div class="map-shell">
@@ -151,10 +31,10 @@
              aria-label="Explore places map"></div>
 
         <div id="my-map-empty-state"
-             class="map-empty-state card shadow d-none"
+             class="map-empty-state surface-card d-none"
              role="status">
-            <div class="card-body text-center p-4">
-                <h2 class="h5">Your map is empty</h2>
+                <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Zm0 0V3m6 18V6"/></svg></div>
+                <h2 class="h5">Your map is ready for a first pin</h2>
                 <p class="text-muted">
                     Create a place or contribute to an existing place
                     to make it appear here.
@@ -164,7 +44,6 @@
                    class="btn btn-primary">
                     Explore global map
                 </a>
-            </div>
         </div>
     </div>
 </div>

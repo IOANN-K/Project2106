@@ -9,6 +9,18 @@ public sealed class PlaceDetailsViewModel
 
     public int PostCount { get; init; }
 
+    public int PostPage { get; init; }
+
+    public int PostPageSize { get; init; }
+
+    public int TotalPostCount { get; init; }
+
+    public int TotalPostPages =>
+        TotalPostCount == 0
+            ? 0
+            : (int)Math.Ceiling(
+                TotalPostCount / (double)PostPageSize);
+
     public string Sort { get; init; } = "newest";
 
     public double? AverageRating { get; init; }

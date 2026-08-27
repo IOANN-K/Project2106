@@ -17,6 +17,6 @@ public sealed class PlaceSearchViewModel
     public IReadOnlyList<CustomCategory> CustomCategories { get; init; }
         = Array.Empty<CustomCategory>();
 
-    public IReadOnlyList<PlaceSearchResultViewModel> Results { get; init; }
-        = Array.Empty<PlaceSearchResultViewModel>();
+    public PagedResult<PlaceSearchResultViewModel> Results { get; init; }
+        = new();
 }

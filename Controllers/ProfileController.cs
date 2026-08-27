@@ -17,7 +17,9 @@ public class ProfileController : Controller
         _db = db;
     }
 
-    public async Task<IActionResult> Index(string username)
+    public async Task<IActionResult> Index(
+        string username,
+        int page = 1)
     {
         if (string.IsNullOrWhiteSpace(username))
             return NotFound();
@@ -29,17 +31,47 @@ public class ProfileController : Controller
         if (user == null)
             return NotFound();
 
+        const int contributionPageSize = 10;
+        page = Math.Max(page, 1);
+
+        var contributionsCount = await _db.Posts
+            .AsNoTracking()
+            .CountAsync(p => p.AuthorId == user.Id);
+
         var contributions = await _db.Posts
             .AsNoTracking()
             .Where(p => p.AuthorId == user.Id)
-            .Include(p => p.Place)
             .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * contributionPageSize)
+            .Take(contributionPageSize)
+            .Select(p => new Post
+            {
+                Id = p.Id,
+                AuthorId = p.AuthorId,
+                Content = p.Content,
+                CreatedAt = p.CreatedAt,
+                IsEdited = p.IsEdited,
+                EditedAt = p.EditedAt,
+                PlaceId = p.PlaceId,
+                Place = p.Place == null
+                    ? null
+                    : new Place
+                    {
+                        Id = p.Place.Id,
+                        Name = p.Place.Name
+                    }
+            })
             .ToListAsync();
+
+        var createdPlacesCount = await _db.Places
+            .AsNoTracking()
+            .CountAsync(p => p.CreatedByUserId == user.Id);
 
         var createdPlaces = await _db.Places
             .AsNoTracking()
             .Where(p => p.CreatedByUserId == user.Id)
             .OrderByDescending(p => p.CreatedAt)
+            .Take(12)
             .ToListAsync();
 
         var followersCount = await _db.Follows
@@ -57,9 +89,6 @@ public class ProfileController : Controller
 
         var commentsCreated = await _db.Comments
             .CountAsync(c => c.AuthorId == user.Id);
-
-        var contributionsCount = contributions.Count;
-        var createdPlacesCount = createdPlaces.Count;
 
         var reputation =
             createdPlacesCount * 10 +
@@ -99,6 +128,8 @@ public class ProfileController : Controller
             Contributions = contributions,
             CreatedPlaces = createdPlaces,
             ContributionsCount = contributionsCount,
+            ContributionPage = page,
+            ContributionPageSize = contributionPageSize,
             CreatedPlacesCount = createdPlacesCount,
             FollowersCount = followersCount,
             FollowingCount = followingCount,
