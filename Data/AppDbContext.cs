@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Like> Likes { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<Place> Places { get; set; }
+    public DbSet<PostMedia> PostMedia { get; set; }
     public DbSet<CustomCategory> CustomCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -94,6 +95,27 @@ public class AppDbContext : IdentityDbContext<AppUser>
                 t.HasCheckConstraint(
                     "CK_Places_SystemCategory_Range",
                     "\"SystemCategory\" IS NULL OR (\"SystemCategory\" >= 0 AND \"SystemCategory\" <= 8)");
+            });
+
+        builder.Entity<PostMedia>()
+            .HasOne(m => m.Post)
+            .WithMany(p => p.Media)
+            .HasForeignKey(m => m.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PostMedia>()
+            .HasIndex(m => m.PostId);
+
+        builder.Entity<PostMedia>()
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_PostMedia_SizeBytes_Positive",
+                    "\"SizeBytes\" > 0");
+
+                t.HasCheckConstraint(
+                    "CK_PostMedia_MediaType_Range",
+                    "\"MediaType\" >= 0 AND \"MediaType\" <= 1");
             });
 
         builder.Entity<Post>()

@@ -26,6 +26,13 @@ public class LikeController : Controller
         var userId = _userManager.GetUserId(User);
         if (userId == null) return Forbid();
 
+        var postExists = await _db.Posts
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == postId);
+
+        if (!postExists)
+            return NotFound();
+
         var existing = await _db.Likes
             .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
 

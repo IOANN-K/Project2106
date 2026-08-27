@@ -146,6 +146,7 @@ public class PlaceController : Controller
             .Where(p => p.PlaceId == id)
             .Include(p => p.Author)
             .Include(p => p.Comments)
+            .Include(p => p.Media.OrderBy(m => m.SortOrder))
             .AsQueryable();
 
         postsQuery = sort switch
@@ -181,6 +182,9 @@ public class PlaceController : Controller
                 LikeCount = _db.Likes.Count(l =>
                     l.PostId == p.Id &&
                     l.IsLike),
+                DislikeCount = _db.Likes.Count(l =>
+                    l.PostId == p.Id &&
+                    !l.IsLike),
                 CommentCount = p.Comments.Count
             })
             .ToListAsync();

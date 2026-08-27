@@ -8,5 +8,7 @@ public sealed class PlacePostListItemViewModel
 
     public int LikeCount { get; init; }
 
+    public int DislikeCount { get; set; }
+
     public int CommentCount { get; init; }
 }

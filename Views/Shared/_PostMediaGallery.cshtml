@@ -1,0 +1,48 @@
+@model IEnumerable<PROJECT2106.Models.PostMedia>
+@using PROJECT2106.Models
+
+@{
+    var mediaItems = Model
+        .OrderBy(m => m.SortOrder)
+        .ThenBy(m => m.Id)
+        .ToList();
+}
+
+@if (mediaItems.Count > 0)
+{
+    <div class="post-media-gallery row g-2 my-3">
+        @foreach (var media in mediaItems)
+        {
+            <div class="col-12 @(mediaItems.Count > 1 ? "col-md-6" : "")">
+                <div class="post-media-item">
+
+                    @if (media.MediaType == PostMediaType.Image)
+                    {
+                        <img src="@media.RelativePath"
+                             alt="@media.OriginalFileName"
+                             class="post-media-image img-fluid rounded"
+                             loading="lazy" />
+
+                        <div class="post-media-fallback alert alert-secondary mb-0 d-none">
+                            Image unavailable
+                        </div>
+                    }
+                    else
+                    {
+                        <video controls
+                               preload="metadata"
+                               class="post-media-video w-100 rounded">
+                            <source src="@media.RelativePath"
+                                    type="@media.MimeType" />
+                        </video>
+
+                        <div class="post-media-fallback alert alert-secondary mb-0 d-none">
+                            Video unavailable
+                        </div>
+                    }
+
+                </div>
+            </div>
+        }
+    </div>
+}

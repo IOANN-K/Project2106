@@ -90,5 +90,31 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".post-media-image").forEach(image => {
+            image.addEventListener("error", function () {
+                this.classList.add("d-none");
+
+                const fallback =
+                    this.parentElement.querySelector(".post-media-fallback");
+
+                fallback?.classList.remove("d-none");
+            });
+        });
+
+        document.querySelectorAll(".post-media-video").forEach(video => {
+            video.addEventListener("error", function () {
+                this.classList.add("d-none");
+
+                const fallback =
+                    this.parentElement.querySelector(".post-media-fallback");
+
+                fallback?.classList.remove("d-none");
+            });
+        });
+    });
+</script>
+
 </body>
 </html>

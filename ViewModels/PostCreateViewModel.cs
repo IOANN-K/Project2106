@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
 namespace PROJECT2106.ViewModels;
@@ -15,4 +16,6 @@ public sealed class PostCreateViewModel
     public int? PlaceId { get; set; }
 
     public string PlaceName { get; set; } = string.Empty;
+
+    public List<IFormFile> MediaFiles { get; set; } = new();
 }

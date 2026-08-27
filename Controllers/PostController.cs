@@ -14,11 +14,87 @@ public class PostController : Controller
     private readonly UserManager<AppUser> _userManager;
     private readonly ILogger<PostController> _logger;
 
+    private const int MaxMediaFiles = 10;
+    private const long MaxImageSizeBytes = 10 * 1024 * 1024;
+    private const long MaxVideoSizeBytes = 50 * 1024 * 1024;
+
+    private static readonly IReadOnlyDictionary<string, PostMediaType>
+        AllowedMediaTypes =
+            new Dictionary<string, PostMediaType>(
+                StringComparer.OrdinalIgnoreCase)
+            {
+                ["image/jpeg"] = PostMediaType.Image,
+                ["image/png"] = PostMediaType.Image,
+                ["image/webp"] = PostMediaType.Image,
+                ["video/mp4"] = PostMediaType.Video,
+                ["video/webm"] = PostMediaType.Video
+            };
+
+    private static readonly HashSet<string> AllowedImageExtensions =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+        };
+
+    private static readonly HashSet<string> AllowedVideoExtensions =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".mp4",
+            ".webm"
+        };
+
     public PostController(AppDbContext db, ILogger<PostController> logger, UserManager<AppUser> userManager)
     {
         _db = db;
         _logger = logger;
         _userManager = userManager;
+    }
+
+    private static string? ValidateMediaFile(IFormFile file)
+    {
+        if (file.Length <= 0)
+            return "Empty media files are not allowed.";
+
+        if (!AllowedMediaTypes.TryGetValue(
+                file.ContentType,
+                out var mediaType))
+        {
+            return $"Unsupported media type: {file.ContentType}.";
+        }
+
+        var extension =
+            Path.GetExtension(
+                Path.GetFileName(file.FileName));
+
+        var validExtension = mediaType switch
+        {
+            PostMediaType.Image =>
+                AllowedImageExtensions.Contains(extension),
+
+            PostMediaType.Video =>
+                AllowedVideoExtensions.Contains(extension),
+
+            _ => false
+        };
+
+        if (!validExtension)
+            return $"Unsupported file extension: {extension}.";
+
+        var maxSize = mediaType == PostMediaType.Image
+            ? MaxImageSizeBytes
+            : MaxVideoSizeBytes;
+
+        if (file.Length > maxSize)
+        {
+            return mediaType == PostMediaType.Image
+                ? "Image cannot exceed 10 MB."
+                : "Video cannot exceed 50 MB.";
+        }
+
+        return null;
     }
 
     // GET /Post
@@ -46,6 +122,7 @@ public class PostController : Controller
     {
         var post = await _db.Posts
             .Include(p => p.Author)
+            .Include(p => p.Media.OrderBy(m => m.SortOrder))
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (post == null) return NotFound();
@@ -198,6 +275,25 @@ public class PostController : Controller
             }
         }
 
+        if (model.MediaFiles.Count > MaxMediaFiles)
+        {
+            ModelState.AddModelError(
+                nameof(model.MediaFiles),
+                $"A post can contain at most {MaxMediaFiles} media files.");
+        }
+
+        foreach (var file in model.MediaFiles)
+        {
+            var error = ValidateMediaFile(file);
+
+            if (error != null)
+            {
+                ModelState.AddModelError(
+                    nameof(model.MediaFiles),
+                    error);
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             model.PlaceName = placeName ?? string.Empty;
@@ -232,7 +328,83 @@ public class PostController : Controller
             }
         }
 
-        await _db.SaveChangesAsync();
+        var uploadedPaths = new List<string>();
+
+        var uploadDirectory = Path.Combine(
+            Directory.GetCurrentDirectory(),
+            "wwwroot",
+            "uploads",
+            "posts");
+
+        Directory.CreateDirectory(uploadDirectory);
+
+        try
+        {
+            for (var index = 0; index < model.MediaFiles.Count; index++)
+            {
+                var file = model.MediaFiles[index];
+
+                var mediaType = AllowedMediaTypes[file.ContentType];
+
+                var extension = Path
+                    .GetExtension(Path.GetFileName(file.FileName))
+                    .ToLowerInvariant();
+
+                var storedFileName =
+                    $"{Guid.NewGuid():N}{extension}";
+
+                var absolutePath = Path.Combine(
+                    uploadDirectory,
+                    storedFileName);
+
+                await using (var stream =
+                    new FileStream(
+                        absolutePath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                uploadedPaths.Add(absolutePath);
+
+                post.Media.Add(new PostMedia
+                {
+                    MediaType = mediaType,
+
+                    OriginalFileName =
+                        Path.GetFileName(file.FileName),
+
+                    StoredFileName = storedFileName,
+
+                    RelativePath =
+                        $"/uploads/posts/{storedFileName}",
+
+                    MimeType = file.ContentType,
+
+                    SizeBytes = file.Length,
+
+                    SortOrder = index,
+
+                    CreatedAt = DateTime.Now
+                });
+            }
+
+            await _db.SaveChangesAsync();
+        }
+        catch
+        {
+            foreach (var path in uploadedPaths)
+            {
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                }
+            }
+
+            throw;
+        }
 
         _logger.LogInformation("Created post #{Id}", post.Id);
 
@@ -289,12 +461,22 @@ public class PostController : Controller
             return View(model);
 
         dbPost.Content = model.Content.Trim();
+        dbPost.IsEdited = true;
+        dbPost.EditedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Updated post #{Id}", dbPost.Id);
 
-        return RedirectToAction(nameof(Index));
+        if (dbPost.PlaceId.HasValue)
+        {
+            return RedirectToAction(
+                "Details",
+                "Place",
+                new { id = dbPost.PlaceId.Value });
+        }
+
+        return RedirectToAction(nameof(Details), new { id = dbPost.Id });
     }
 
     // GET /Post/Delete/1
@@ -345,11 +527,18 @@ public class PostController : Controller
         var currentUserId = _userManager.GetUserId(User);
         if (comment.AuthorId != currentUserId && !User.IsInRole("Admin"))
             return Forbid();
-        var postId = comment.PostId; // Store the PostId before deleting the comment
+        var postId = comment.PostId;
+
         _db.Comments.Remove(comment);
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Deleted comment #{CommentId}", commentId);
-        return RedirectToAction(nameof(Details), new { id = comment.PostId });
+
+        _logger.LogInformation(
+            "Deleted comment #{CommentId}",
+            commentId);
+
+        return RedirectToAction(
+            nameof(Details),
+            new { id = postId });
     }
 
     // Edit a comment

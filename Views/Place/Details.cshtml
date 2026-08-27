@@ -225,11 +225,20 @@
 
                                 <div class="small text-muted">
                                     @post.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+
+                                    @if (post.IsEdited)
+                                    {
+                                        <span class="ms-1">
+                                            · edited
+                                        </span>
+                                    }
                                 </div>
                             </div>
 
                             <div class="small text-muted">
                                 @item.LikeCount like(s)
+                                ·
+                                @item.DislikeCount dislike(s)
                                 ·
                                 @item.CommentCount comment(s)
                             </div>
@@ -238,6 +247,9 @@
 
                         <p class="mb-3"
                         style="white-space: pre-wrap;">@post.Content</p>
+
+                        <partial name="_PostMediaGallery"
+                                 model="post.Media" />
 
                         <a asp-controller="Post"
                         asp-action="Details"

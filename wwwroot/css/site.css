@@ -29,3 +29,21 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+/* Post media */
+.post-media-item {
+    overflow: hidden;
+    border-radius: 0.5rem;
+}
+
+.post-media-image,
+.post-media-video {
+    display: block;
+    width: 100%;
+    max-height: 520px;
+    object-fit: contain;
+    background: #f8f9fa;
+}
+
+.post-media-video {
+    min-height: 180px;
+}

@@ -6,11 +6,20 @@
 
 <h2>New Post</h2>
 
-<form method="post">
+<form method="post"
+      enctype="multipart/form-data">
     @Html.AntiForgeryToken()
     <input asp-for="PlaceId" type="hidden" />
 
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="alert alert-secondary">
+        Posting to:
+        <strong>@Model.PlaceName</strong>
+    </div>
+
+    <span asp-validation-for="PlaceId"
+        class="text-danger d-block"></span>
 
     <div style="margin-bottom: 10px;">
         <label asp-for="Content">Content:</label>
@@ -33,20 +42,32 @@
         <span asp-validation-for="Tags" class="text-danger"></span>
     </div>
 
+    <div class="mb-3">
+        <label asp-for="MediaFiles" class="form-label">
+            Images / videos
+        </label>
+
+        <input asp-for="MediaFiles"
+               type="file"
+               class="form-control"
+               multiple
+               accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,image/jpeg,image/png,image/webp,video/mp4,video/webm" />
+
+        <span asp-validation-for="MediaFiles"
+              class="text-danger"></span>
+
+        <div class="form-text">
+            Up to 10 files. Images up to 10 MB, videos up to 50 MB.
+        </div>
+    </div>
+
     <button type="submit" style="padding: 8px 20px;">Publish</button>
-    @if (Model.PlaceId.HasValue)
-    {
-        <a asp-controller="Place"
+    <a asp-controller="Place"
         asp-action="Details"
-        asp-route-id="@Model.PlaceId.Value"
+        asp-route-id="@Model.PlaceId"
         style="margin-left: 10px;">
-            Cancel
-        </a>
-    }
-    else
-    {
-        <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
-    }
+        Cancel
+    </a>
 </form>
 
 @section Scripts {
