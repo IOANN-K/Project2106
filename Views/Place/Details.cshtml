@@ -1,34 +1,256 @@
-@model PROJECT2106.Models.Place
+@model PROJECT2106.ViewModels.PlaceDetailsViewModel
+@using System.Security.Claims
 
 @{
-    ViewData["Title"] = Model.Name;
+    ViewData["Title"] = Model.Place.Name;
+
+    var currentUserId =
+        User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    var canAttemptDelete =
+        User.Identity?.IsAuthenticated == true &&
+        (Model.Place.CreatedByUserId == currentUserId ||
+         User.IsInRole("Admin"));
 }
 
-<h2>@Model.Name</h2>
+<div class="container py-4">
 
-<p>
-    <strong>Coordinates:</strong>
-    @Model.Latitude, @Model.Longitude
-</p>
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="mb-2">@Model.Place.Name</h1>
 
-<p>
-    <strong>Category:</strong>
+            <div class="text-muted">
+                Created by
+                <strong>@(Model.Place.CreatedByUser?.UserName ?? "Unknown user")</strong>
+                on
+                @Model.Place.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+            </div>
+        </div>
 
-    @if (Model.SystemCategory.HasValue)
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="d-flex gap-2">
+                <a asp-controller="Post"
+                   asp-action="Create"
+                   asp-route-placeId="@Model.Place.Id"
+                   class="btn btn-primary">
+                    Add Post
+                </a>
+
+                @if (canAttemptDelete)
+                {
+                    <a asp-action="Delete"
+                       asp-route-id="@Model.Place.Id"
+                       class="btn btn-outline-danger">
+                        Delete Place
+                    </a>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="row g-4 mb-5">
+
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-body">
+
+                    <h5 class="card-title">Place information</h5>
+
+                    <dl class="row mb-0">
+
+                        <dt class="col-sm-4">Category</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.Place.SystemCategory.HasValue)
+                            {
+                                <span class="badge text-bg-primary">
+                                    @Model.Place.SystemCategory
+                                </span>
+                            }
+                            else if (Model.Place.CustomCategory != null)
+                            {
+                                <span class="badge text-bg-secondary">
+                                    @Model.Place.CustomCategory.Name
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Unknown</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Latitude</dt>
+                        <dd class="col-sm-8">
+                            @Model.Place.Latitude.ToString("F6")
+                        </dd>
+
+                        <dt class="col-sm-4">Longitude</dt>
+                        <dd class="col-sm-8">
+                            @Model.Place.Longitude.ToString("F6")
+                        </dd>
+
+                        <dt class="col-sm-4">Posts</dt>
+                        <dd class="col-sm-8">
+                            @Model.PostCount
+                        </dd>
+
+                    </dl>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Place.Description))
+                    {
+                        <hr />
+
+                        <p class="mb-0">
+                            @Model.Place.Description
+                        </p>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+
+                    <h5 class="card-title">Rating</h5>
+
+                    @if (Model.AverageRating.HasValue)
+                    {
+                        <div class="fs-3 fw-bold">
+                            @Model.AverageRating.Value.ToString("0.0") / 5
+                        </div>
+
+                        <div class="text-muted">
+                            @Model.RatingCount rating(s)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">
+                            No ratings yet.
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+
+        <div>
+            <h2 class="h4 mb-0">
+                Posts
+                <span class="text-muted">(@Model.PostCount)</span>
+            </h2>
+        </div>
+
+        <div class="btn-group" role="group" aria-label="Post sorting">
+
+            <a asp-action="Details"
+               asp-route-id="@Model.Place.Id"
+               asp-route-sort="newest"
+               class="btn @(Model.Sort == "newest" ? "btn-dark" : "btn-outline-dark")">
+                Newest
+            </a>
+
+            <a asp-action="Details"
+               asp-route-id="@Model.Place.Id"
+               asp-route-sort="oldest"
+               class="btn @(Model.Sort == "oldest" ? "btn-dark" : "btn-outline-dark")">
+                Oldest
+            </a>
+
+            <a asp-action="Details"
+               asp-route-id="@Model.Place.Id"
+               asp-route-sort="most-liked"
+               class="btn @(Model.Sort == "most-liked" ? "btn-dark" : "btn-outline-dark")">
+                Most liked
+            </a>
+
+            <a asp-action="Details"
+               asp-route-id="@Model.Place.Id"
+               asp-route-sort="most-discussed"
+               class="btn @(Model.Sort == "most-discussed" ? "btn-dark" : "btn-outline-dark")">
+                Most discussed
+            </a>
+
+        </div>
+
+    </div>
+
+    @if (Model.Posts.Count == 0)
     {
-        @Model.SystemCategory
+        <div class="card">
+            <div class="card-body text-center py-5">
+
+                <h3 class="h5">No posts yet</h3>
+
+                <p class="text-muted mb-3">
+                    Nobody has shared anything about this place yet.
+                </p>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Post"
+                       asp-action="Create"
+                       asp-route-placeId="@Model.Place.Id"
+                       class="btn btn-primary">
+                        Add the first post
+                    </a>
+                }
+
+            </div>
+        </div>
     }
     else
     {
-        @Model.CustomCategory?.Name
+        <div class="d-grid gap-3">
+
+            @foreach (var item in Model.Posts)
+            {
+                var post = item.Post;
+
+                <article class="card">
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between gap-3 mb-3">
+
+                            <div>
+                                <strong>
+                                    @(post.Author?.UserName ?? "Unknown user")
+                                </strong>
+
+                                <div class="small text-muted">
+                                    @post.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+                                </div>
+                            </div>
+
+                            <div class="small text-muted">
+                                @item.LikeCount like(s)
+                                ·
+                                @item.CommentCount comment(s)
+                            </div>
+
+                        </div>
+
+                        <p class="mb-3"
+                        style="white-space: pre-wrap;">@post.Content</p>
+
+                        <a asp-controller="Post"
+                        asp-action="Details"
+                        asp-route-id="@post.Id"
+                        class="btn btn-sm btn-outline-secondary">
+                            Open post
+                        </a>
+
+                    </div>
+                </article>
+            }
+
+        </div>
     }
-</p>
 
-@if (!string.IsNullOrWhiteSpace(Model.Description))
-{
-    <p>@Model.Description</p>
-}
-
-<p class="text-muted">
-    Created by @Model.CreatedByUser?.UserName
-</p>
+</div>

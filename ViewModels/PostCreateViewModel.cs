@@ -10,4 +10,6 @@ public sealed class PostCreateViewModel
 
     [StringLength(500, ErrorMessage = "Tags cannot exceed 500 characters")]
     public string Tags { get; set; } = string.Empty;
+
+    public int? PlaceId { get; set; }
 }

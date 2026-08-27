@@ -137,9 +137,23 @@ public class PostController : Controller
     }
 
     // GET /Post/Create
-    public IActionResult Create()
+    [Authorize]
+    public async Task<IActionResult> Create(int? placeId)
     {
-        return View();
+        if (placeId.HasValue)
+        {
+            var placeExists = await _db.Places
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == placeId.Value);
+
+            if (!placeExists)
+                return NotFound();
+        }
+
+        return View(new PostCreateViewModel
+        {
+            PlaceId = placeId
+        });
     }
 
     // POST /Post/Create
@@ -147,18 +161,33 @@ public class PostController : Controller
     [Authorize]
     public async Task<IActionResult> Create(PostCreateViewModel model)
     {
-        if (!ModelState.IsValid)
-            return View(model);
-
         var userId = _userManager.GetUserId(User);
         if (userId == null)
             return Forbid();
+
+        if (model.PlaceId.HasValue)
+        {
+            var placeExists = await _db.Places
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == model.PlaceId.Value);
+
+            if (!placeExists)
+            {
+                ModelState.AddModelError(
+                    nameof(model.PlaceId),
+                    "Selected place does not exist.");
+            }
+        }
+
+        if (!ModelState.IsValid)
+            return View(model);
 
         var post = new Post
         {
             Content = model.Content.Trim(),
             CreatedAt = DateTime.Now,
-            AuthorId = userId
+            AuthorId = userId,
+            PlaceId = model.PlaceId
         };
 
         _db.Posts.Add(post);
@@ -184,6 +213,14 @@ public class PostController : Controller
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Created post #{Id}", post.Id);
+
+        if (post.PlaceId.HasValue)
+        {
+            return RedirectToAction(
+                "Details",
+                "Place",
+                new { id = post.PlaceId.Value });
+        }
 
         return RedirectToAction(nameof(Index));
     }
@@ -244,6 +281,7 @@ public class PostController : Controller
     }
 
     // GET /Post/Delete/1
+    [Authorize]
     public async Task<IActionResult> Delete(int id)
     {
         var post = await _db.Posts.FindAsync(id);
@@ -256,6 +294,7 @@ public class PostController : Controller
 
     // POST /Post/Delete/1
     [HttpPost, ActionName("Delete")]
+    [Authorize]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var post = await _db.Posts.FindAsync(id);
@@ -263,9 +302,19 @@ public class PostController : Controller
         var currentUserId = _userManager.GetUserId(User);
         if (post.AuthorId != currentUserId && !User.IsInRole("Admin"))
             return Forbid();
+        var placeId = post.PlaceId;
         _db.Posts.Remove(post);
         await _db.SaveChangesAsync();
         _logger.LogInformation("Deleted post #{Id}", id);
+
+        if (placeId.HasValue)
+        {
+            return RedirectToAction(
+                "Details",
+                "Place",
+                new { id = placeId.Value });
+        }
+
         return RedirectToAction(nameof(Index));
     }
 

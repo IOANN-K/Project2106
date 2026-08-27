@@ -1,0 +1,43 @@
+@model PROJECT2106.Models.Place
+
+@{
+    ViewData["Title"] = "Delete Place";
+}
+
+<div class="container py-4">
+    <h1 class="h3">Delete Place</h1>
+
+    <div class="alert alert-warning">
+        <strong>Delete @Model.Name?</strong>
+        <p class="mb-0 mt-2">
+            Posts that are allowed to be removed with this place will also be deleted.
+        </p>
+    </div>
+
+    <dl class="row">
+        <dt class="col-sm-3">Name</dt>
+        <dd class="col-sm-9">@Model.Name</dd>
+
+        <dt class="col-sm-3">Coordinates</dt>
+        <dd class="col-sm-9">
+            @Model.Latitude, @Model.Longitude
+        </dd>
+    </dl>
+
+    <form asp-action="Delete"
+          asp-route-id="@Model.Id"
+          method="post">
+        @Html.AntiForgeryToken()
+
+        <button type="submit"
+                class="btn btn-danger">
+            Delete Place
+        </button>
+
+        <a asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-secondary">
+            Cancel
+        </a>
+    </form>
+</div>

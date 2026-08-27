@@ -4,8 +4,22 @@ using PROJECT2106.Models;
 using Microsoft.AspNetCore.Identity;
 using PROJECT2106.Options;
 using PROJECT2106.Services;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+var supportedCultures = new[]
+    {
+        new CultureInfo("en-US")
+    };
+
+    builder.Services.Configure<RequestLocalizationOptions>(options =>
+    {
+        options.DefaultRequestCulture =
+            new Microsoft.AspNetCore.Localization.RequestCulture("en-US");
+
+        options.SupportedCultures = supportedCultures;
+        options.SupportedUICultures = supportedCultures;
+    });
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -35,6 +49,7 @@ builder.Services.AddSingleton<PROJECT2106.Services.IActivityLogService,
                                PROJECT2106.Services.ActivityLogService>();
 
 var app = builder.Build();
+app.UseRequestLocalization();
 app.UseMiddleware<PROJECT2106.Middleware.RequestLoggingMiddleware>();
 
 // Configure the HTTP request pipeline.

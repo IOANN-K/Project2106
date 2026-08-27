@@ -1,0 +1,141 @@
+@{
+    ViewData["Title"] = "Explore";
+}
+
+@section Styles {
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="" />
+
+    <style>
+        #explore-map {
+            width: 100%;
+            height: calc(100vh - 160px);
+            min-height: 500px;
+            border-radius: 12px;
+        }
+
+        .explore-header {
+            margin-bottom: 1rem;
+        }
+
+        .place-popup-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .place-popup-category {
+            color: #6c757d;
+            margin-bottom: 6px;
+        }
+    </style>
+}
+
+<div class="container-fluid py-3">
+    <div class="explore-header">
+        <h1 class="h3 mb-1">Explore</h1>
+        <p class="text-muted mb-0">
+            Discover places shared by the community.
+        </p>
+    </div>
+
+    <div id="explore-map"
+         aria-label="Explore places map"></div>
+</div>
+
+@section Scripts {
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        crossorigin="">
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const map = L.map("explore-map").setView(
+                [48.4647, 35.0462],
+                11
+            );
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }
+            ).addTo(map);
+
+            try {
+                const response = await fetch("/Map/Markers", {
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Marker request failed: ${response.status}`
+                    );
+                }
+
+                const places = await response.json();
+
+                const bounds = [];
+
+                for (const place of places) {
+                    const marker = L.marker([
+                        place.latitude,
+                        place.longitude
+                    ]);
+
+                    const rating =
+                        place.rating == null
+                            ? "No ratings yet"
+                            : `${place.rating.toFixed(1)} / 5`;
+
+                    const popup = document.createElement("div");
+
+                    const name = document.createElement("div");
+                    name.className = "place-popup-name";
+                    name.textContent = place.name;
+
+                    const category = document.createElement("div");
+                    category.className = "place-popup-category";
+                    category.textContent = place.category;
+
+                    const ratingElement = document.createElement("div");
+                    ratingElement.textContent = rating;
+
+                    const link = document.createElement("a");
+                    link.href = `/Place/Details/${place.id}`;
+                    link.textContent = "Open place";
+
+                    popup.appendChild(name);
+                    popup.appendChild(category);
+                    popup.appendChild(ratingElement);
+                    popup.appendChild(link);
+
+                    marker.bindPopup(popup);
+                    marker.addTo(map);
+
+                    bounds.push([
+                        place.latitude,
+                        place.longitude
+                    ]);
+                }
+
+                if (bounds.length === 1) {
+                    map.setView(bounds[0], 14);
+                } else if (bounds.length > 1) {
+                    map.fitBounds(bounds, {
+                        padding: [30, 30],
+                        maxZoom: 15
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to load map markers.", error);
+            }
+        });
+    </script>
+}

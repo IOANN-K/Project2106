@@ -8,6 +8,7 @@
 
 <form method="post">
     @Html.AntiForgeryToken()
+    <input asp-for="PlaceId" type="hidden" />
 
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -33,7 +34,19 @@
     </div>
 
     <button type="submit" style="padding: 8px 20px;">Publish</button>
-    <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
+    @if (Model.PlaceId.HasValue)
+    {
+        <a asp-controller="Place"
+        asp-action="Details"
+        asp-route-id="@Model.PlaceId.Value"
+        style="margin-left: 10px;">
+            Cancel
+        </a>
+    }
+    else
+    {
+        <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
+    }
 </form>
 
 @section Scripts {
