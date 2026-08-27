@@ -26,26 +26,65 @@ public class LikeController : Controller
         var userId = _userManager.GetUserId(User);
         if (userId == null) return Forbid();
 
-        var postExists = await _db.Posts
+        var post = await _db.Posts
             .AsNoTracking()
-            .AnyAsync(p => p.Id == postId);
+            .Where(p => p.Id == postId)
+            .Select(p => new
+            {
+                p.Id,
+                p.AuthorId,
+                p.PlaceId
+            })
+            .FirstOrDefaultAsync();
 
-        if (!postExists)
+        if (post == null)
             return NotFound();
 
         var existing = await _db.Likes
             .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
 
+        var createsLikeNotification = false;
+
         if (existing != null)
         {
             if (existing.IsLike == isLike)
-                _db.Likes.Remove(existing); 
+            {
+                _db.Likes.Remove(existing);
+            }
             else
-                existing.IsLike = isLike; 
+            {
+                existing.IsLike = isLike;
+
+                if (isLike)
+                    createsLikeNotification = true;
+            }
         }
         else
         {
-            _db.Likes.Add(new Like { PostId = postId, UserId = userId, IsLike = isLike });
+            _db.Likes.Add(new Like
+            {
+                PostId = postId,
+                UserId = userId,
+                IsLike = isLike
+            });
+
+            if (isLike)
+                createsLikeNotification = true;
+        }
+
+        if (createsLikeNotification &&
+            post.AuthorId != null &&
+            post.AuthorId != userId)
+        {
+            _db.Notifications.Add(new Notification
+            {
+                UserId = post.AuthorId,
+                ActorUserId = userId,
+                Type = NotificationType.PostLiked,
+                PostId = post.Id,
+                PlaceId = post.PlaceId,
+                CreatedAt = DateTime.Now
+            });
         }
 
         try

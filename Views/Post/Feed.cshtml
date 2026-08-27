@@ -1,32 +1,179 @@
-@model List<PROJECT2106.Models.Post>
+@model IReadOnlyList<PROJECT2106.ViewModels.FeedItemViewModel>
+@using PROJECT2106.Models
+
 @{
     ViewData["Title"] = "My Feed";
 }
-<h2>My Feed</h2>
 
-@if (!Model.Any())
-{
-    <p>No posts yet. Follow some users to see their posts here!</p>
-}
-else
-{
-    foreach (var post in Model)
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">My Feed</h1>
+
+        <p class="text-muted mb-0">
+            New contributions from explorers you follow.
+        </p>
+    </div>
+
+    @if (Model.Count == 0)
     {
-        <div style="border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 8px;">
-            <p><strong>@post.Author?.UserName</strong></p>
-            <p>@post.Content</p>
-            <small>@post.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
-            @if (post.Tags != null && post.Tags.Any())
-            {
-                <div style="margin-top:5px;">
-                    @foreach (var tag in post.Tags)
-                    {
-                        <a asp-action="Index" asp-route-tag="@tag.Name" class="badge bg-secondary text-decoration-none" style="margin-right:3px;">@tag.Name</a>
-                    }
-                </div>
-            }
-            <br />
-            <a asp-action="Details" asp-route-id="@post.Id">Comments (@(post.Comments?.Count ?? 0))</a>
+        <div class="card">
+            <div class="card-body text-center py-5">
+
+                <h2 class="h5">
+                    Your feed is empty
+                </h2>
+
+                <p class="text-muted mb-3">
+                    Follow other explorers to see their latest
+                    contributions here.
+                </p>
+
+                <a asp-controller="Profile"
+                   asp-action="Search"
+                   class="btn btn-primary">
+                    Find explorers
+                </a>
+
+                <a asp-controller="Map"
+                   asp-action="Index"
+                   class="btn btn-outline-secondary ms-2">
+                    Explore map
+                </a>
+
+            </div>
         </div>
     }
-}
+    else
+    {
+        <div class="d-grid gap-3">
+
+            @foreach (var item in Model)
+            {
+                <article class="card">
+                    <div class="card-body">
+
+                        <div class="d-flex
+                                    justify-content-between
+                                    align-items-start
+                                    gap-3
+                                    mb-3">
+
+                            <div>
+                                <strong>
+                                    @item.AuthorUsername
+                                </strong>
+
+                                <div class="small text-muted">
+                                    @item.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+
+                                    @if (item.IsEdited)
+                                    {
+                                        <span>· edited</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <span class="badge bg-secondary">
+                                @item.Category
+                            </span>
+
+                        </div>
+
+                        <div class="small text-muted mb-2">
+                            Contribution to
+
+                            <a asp-controller="Place"
+                               asp-action="Details"
+                               asp-route-id="@item.PlaceId">
+                                @item.PlaceName
+                            </a>
+                        </div>
+
+                        <p style="white-space: pre-wrap;">
+                            @item.Excerpt
+                        </p>
+
+                        @if (item.Media != null)
+                        {
+                            <div class="mb-3"
+                                 style="max-width: 640px;">
+
+                                @if (item.Media.MediaType == PostMediaType.Image)
+                                {
+                                    <img src="@item.Media.RelativePath"
+                                         alt="@item.Media.OriginalFileName"
+                                         class="img-fluid rounded post-media-image"
+                                         loading="lazy"
+                                         style="width:100%;
+                                                max-height:360px;
+                                                object-fit:cover;" />
+
+                                    <div class="post-media-fallback
+                                                alert alert-secondary
+                                                d-none mb-0">
+                                        Image unavailable
+                                    </div>
+                                }
+                                else
+                                {
+                                    <video controls
+                                           preload="metadata"
+                                           class="w-100 rounded post-media-video"
+                                           style="max-height:360px;">
+
+                                        <source src="@item.Media.RelativePath"
+                                                type="@item.Media.MimeType" />
+
+                                    </video>
+
+                                    <div class="post-media-fallback
+                                                alert alert-secondary
+                                                d-none mb-0">
+                                        Video unavailable
+                                    </div>
+                                }
+
+                            </div>
+                        }
+
+                        <div class="d-flex
+                                    flex-wrap
+                                    justify-content-between
+                                    align-items-center
+                                    gap-2">
+
+                            <div class="small text-muted">
+                                👍 @item.LikeCount
+                                ·
+                                💬 @item.CommentCount
+                            </div>
+
+                            <div class="d-flex gap-2">
+
+                                <a asp-controller="Post"
+                                   asp-action="Details"
+                                   asp-route-id="@item.PostId"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Open post
+                                </a>
+
+                                <a asp-controller="Place"
+                                   asp-action="Details"
+                                   asp-route-id="@item.PlaceId"
+                                   class="btn btn-sm btn-primary">
+                                    Open place
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                </article>
+            }
+
+        </div>
+    }
+
+</div>

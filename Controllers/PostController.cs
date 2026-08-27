@@ -203,6 +203,21 @@ public class PostController : Controller
         };
 
         _db.Comments.Add(comment);
+
+        if (post.AuthorId != null &&
+            post.AuthorId != userId)
+        {
+            _db.Notifications.Add(new Notification
+            {
+                UserId = post.AuthorId,
+                ActorUserId = userId,
+                Type = NotificationType.PostCommented,
+                PostId = post.Id,
+                PlaceId = post.PlaceId,
+                CreatedAt = DateTime.Now
+            });
+        }
+
         await _db.SaveChangesAsync();
 
         _logger.LogInformation(
@@ -310,6 +325,12 @@ public class PostController : Controller
 
         _db.Posts.Add(post);
 
+        var followerIds = await _db.Follows
+            .AsNoTracking()
+            .Where(f => f.FollowingId == userId)
+            .Select(f => f.FollowerId)
+            .ToListAsync();
+
         if (!string.IsNullOrWhiteSpace(model.Tags))
         {
             var tagNames = model.Tags
@@ -387,6 +408,22 @@ public class PostController : Controller
 
                     SortOrder = index,
 
+                    CreatedAt = DateTime.Now
+                });
+            }
+
+            foreach (var followerId in followerIds)
+            {
+                if (followerId == userId)
+                    continue;
+
+                _db.Notifications.Add(new Notification
+                {
+                    UserId = followerId,
+                    ActorUserId = userId,
+                    Type = NotificationType.FollowedUserPosted,
+                    Post = post,
+                    PlaceId = post.PlaceId,
                     CreatedAt = DateTime.Now
                 });
             }
@@ -604,19 +641,72 @@ public class PostController : Controller
     {
         var userId = _userManager.GetUserId(User);
 
-        var followingIds = await _db.Follows
-            .Where(f => f.FollowerId == userId)
-            .Select(f => f.FollowingId)
-            .ToListAsync();
+        if (userId == null)
+            return Forbid();
 
-        var posts = await _db.Posts
-            .Include(p => p.Author)
-            .Include(p => p.Comments)
-            .Include(p => p.Tags)
-            .Where(p => followingIds.Contains(p.AuthorId!))
+        var feed = await _db.Posts
+            .AsNoTracking()
+            .Where(p =>
+                p.PlaceId.HasValue &&
+                p.AuthorId != null &&
+                _db.Follows.Any(f =>
+                    f.FollowerId == userId &&
+                    f.FollowingId == p.AuthorId))
             .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new FeedItemViewModel
+            {
+                PostId = p.Id,
+
+                AuthorUsername =
+                    p.Author != null &&
+                    p.Author.UserName != null
+                        ? p.Author.UserName
+                        : "Unknown user",
+
+                PlaceId = p.PlaceId!.Value,
+
+                PlaceName =
+                    p.Place != null
+                        ? p.Place.Name
+                        : "Unknown place",
+
+                Category =
+                    p.Place != null &&
+                    p.Place.SystemCategory.HasValue
+                        ? p.Place.SystemCategory.Value.ToString()
+                        : p.Place != null &&
+                          p.Place.CustomCategory != null
+                            ? p.Place.CustomCategory.Name
+                            : "Other",
+
+                Excerpt = p.Content.Length > 220
+                    ? p.Content.Substring(0, 220) + "…"
+                    : p.Content,
+
+                CreatedAt = p.CreatedAt,
+                IsEdited = p.IsEdited,
+
+                LikeCount = _db.Likes.Count(l =>
+                    l.PostId == p.Id &&
+                    l.IsLike),
+
+                CommentCount = _db.Comments.Count(c =>
+                    c.PostId == p.Id),
+
+                Media = p.Media
+                    .OrderBy(m => m.SortOrder)
+                    .ThenBy(m => m.Id)
+                    .Select(m => new FeedMediaPreviewViewModel
+                    {
+                        RelativePath = m.RelativePath,
+                        OriginalFileName = m.OriginalFileName,
+                        MimeType = m.MimeType,
+                        MediaType = m.MediaType
+                    })
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
-        return View(posts);
+        return View(feed);
     }
 }

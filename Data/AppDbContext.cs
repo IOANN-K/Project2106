@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Place> Places { get; set; }
     public DbSet<PostMedia> PostMedia { get; set; }
     public DbSet<PlaceRating> PlaceRatings { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
     public DbSet<CustomCategory> CustomCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -147,5 +148,45 @@ public class AppDbContext : IdentityDbContext<AppUser>
                 "CK_PlaceRatings_Value_Range",
                 "\"Value\" >= 1 AND \"Value\" <= 5");
         });
+
+        builder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Notification>()
+            .HasOne(n => n.ActorUser)
+            .WithMany()
+            .HasForeignKey(n => n.ActorUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Notification>()
+            .HasOne(n => n.Post)
+            .WithMany()
+            .HasForeignKey(n => n.PostId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<Notification>()
+            .HasOne(n => n.Place)
+            .WithMany()
+            .HasForeignKey(n => n.PlaceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<Notification>()
+            .HasIndex(n => new
+            {
+                n.UserId,
+                n.IsRead,
+                n.CreatedAt
+            });
+
+        builder.Entity<Notification>()
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Notifications_Type_Range",
+                    "\"Type\" >= 0 AND \"Type\" <= 3");
+            });
     }
 }

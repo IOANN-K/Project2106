@@ -51,6 +51,14 @@ public class FollowController : Controller
 
         _db.Follows.Add(follow);
 
+        _db.Notifications.Add(new Notification
+        {
+            UserId = userToFollow.Id,
+            ActorUserId = currentUserId,
+            Type = NotificationType.Followed,
+            CreatedAt = DateTime.Now
+        });
+
         try
         {
             await _db.SaveChangesAsync();
