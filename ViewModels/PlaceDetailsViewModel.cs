@@ -14,4 +14,6 @@ public sealed class PlaceDetailsViewModel
     public double? AverageRating { get; init; }
 
     public int RatingCount { get; init; }
+
+    public int? CurrentUserRating { get; init; }
 }

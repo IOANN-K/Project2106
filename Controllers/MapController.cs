@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PROJECT2106.Data;
+using PROJECT2106.Models;
 using PROJECT2106.ViewModels;
 
 namespace PROJECT2106.Controllers;
@@ -8,10 +11,14 @@ namespace PROJECT2106.Controllers;
 public class MapController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly UserManager<AppUser> _userManager;
 
-    public MapController(AppDbContext db)
+    public MapController(
+        AppDbContext db,
+        UserManager<AppUser> userManager)
     {
         _db = db;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -21,10 +28,38 @@ public class MapController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Markers()
+    [Authorize]
+    public IActionResult My()
     {
-        var places = await _db.Places
+        ViewBag.MyMap = true;
+
+        return View("Index");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Markers(bool mine = false)
+    {
+        var query = _db.Places
             .AsNoTracking()
+            .AsQueryable();
+
+        if (mine)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return Unauthorized();
+
+            var currentUserId = _userManager.GetUserId(User);
+
+            if (currentUserId == null)
+                return Unauthorized();
+
+            query = query.Where(p =>
+                p.CreatedByUserId == currentUserId ||
+                p.Posts.Any(post =>
+                    post.AuthorId == currentUserId));
+        }
+
+        var places = await query
             .Select(p => new
             {
                 p.Id,
@@ -34,7 +69,10 @@ public class MapController : Controller
                 p.SystemCategory,
                 CustomCategoryName = p.CustomCategory != null
                     ? p.CustomCategory.Name
-                    : null
+                    : null,
+                Rating = p.Ratings
+                    .Select(r => (double?)r.Value)
+                    .Average()
             })
             .ToListAsync();
 
@@ -52,7 +90,7 @@ public class MapController : Controller
 
                 IsCustomCategory = !p.SystemCategory.HasValue,
 
-                Rating = null
+                Rating = p.Rating
             })
             .ToList();
 

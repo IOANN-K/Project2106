@@ -121,15 +121,73 @@
                             @Model.AverageRating.Value.ToString("0.0") / 5
                         </div>
 
-                        <div class="text-muted">
+                        <div class="text-muted mb-3">
                             @Model.RatingCount rating(s)
                         </div>
                     }
                     else
                     {
-                        <div class="text-muted">
+                        <div class="fs-3 fw-bold">
+                            0.0 / 5
+                        </div>
+
+                        <div class="text-muted mb-3">
                             No ratings yet.
                         </div>
+                    }
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        @if (TempData["RatingError"] is string ratingError)
+                        {
+                            <div class="alert alert-danger py-2">
+                                @ratingError
+                            </div>
+                        }
+
+                        <form asp-controller="Place"
+                              asp-action="Rate"
+                              method="post">
+
+                            @Html.AntiForgeryToken()
+
+                            <input type="hidden"
+                                   name="PlaceId"
+                                   value="@Model.Place.Id" />
+
+                            <label class="form-label">
+                                Your rating
+                            </label>
+
+                            <select name="Value"
+                                    class="form-select mb-2"
+                                    required>
+                                <option value="">Choose...</option>
+
+                                @for (var value = 1; value <= 5; value++)
+                                {
+                                    if (Model.CurrentUserRating == value)
+                                    {
+                                        <option value="@value" selected>
+                                            @value
+                                        </option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@value">
+                                            @value
+                                        </option>
+                                    }
+                                }
+                            </select>
+
+                            <button type="submit"
+                                    class="btn btn-primary btn-sm">
+                                @(Model.CurrentUserRating.HasValue
+                                    ? "Update rating"
+                                    : "Rate place")
+                            </button>
+                        </form>
                     }
 
                 </div>

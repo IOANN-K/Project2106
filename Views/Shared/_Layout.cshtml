@@ -37,6 +37,13 @@
                                 Explore
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               asp-controller="Place"
+                               asp-action="Search">
+                                Find Places
+                            </a>
+                        </li>
 
                         @if (User.Identity!.IsAuthenticated)
                         {

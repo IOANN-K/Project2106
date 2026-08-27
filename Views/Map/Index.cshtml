@@ -1,5 +1,6 @@
 @{
     ViewData["Title"] = "Explore";
+    var isMyMap = ViewBag.MyMap as bool? ?? false;
 }
 
 @section Styles {
@@ -18,6 +19,20 @@
 
         .explore-header {
             margin-bottom: 1rem;
+        }
+
+        .map-shell {
+            position: relative;
+        }
+
+        .map-empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            z-index: 1100;
+            width: calc(100% - 2rem);
+            max-width: 440px;
+            transform: translate(-50%, -50%);
         }
 
         .place-popup-name {
@@ -131,8 +146,27 @@
         </p>
     </div>
 
-    <div id="explore-map"
-         aria-label="Explore places map"></div>
+    <div class="map-shell">
+        <div id="explore-map"
+             aria-label="Explore places map"></div>
+
+        <div id="my-map-empty-state"
+             class="map-empty-state card shadow d-none"
+             role="status">
+            <div class="card-body text-center p-4">
+                <h2 class="h5">Your map is empty</h2>
+                <p class="text-muted">
+                    Create a place or contribute to an existing place
+                    to make it appear here.
+                </p>
+                <a asp-controller="Map"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Explore global map
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -143,6 +177,8 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
+            const isMyMap = @Json.Serialize(isMyMap);
+
             const map = L.map("explore-map").setView(
                 [48.4647, 35.0462],
                 11
@@ -480,7 +516,11 @@
             });
 
             try {
-                const response = await fetch("/Map/Markers", {
+                const markerUrl = isMyMap
+                    ? "/Map/Markers?mine=true"
+                    : "/Map/Markers";
+
+                const response = await fetch(markerUrl, {
                     headers: {
                         "Accept": "application/json"
                     }
@@ -493,6 +533,12 @@
                 }
 
                 const places = await response.json();
+
+                if (isMyMap && places.length === 0) {
+                    document
+                        .getElementById("my-map-empty-state")
+                        ?.classList.remove("d-none");
+                }
 
                 const bounds = [];
 

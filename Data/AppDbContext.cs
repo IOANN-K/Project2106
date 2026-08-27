@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<AppUser>
     public DbSet<Tag> Tags { get; set; }
     public DbSet<Place> Places { get; set; }
     public DbSet<PostMedia> PostMedia { get; set; }
+    public DbSet<PlaceRating> PlaceRatings { get; set; }
     public DbSet<CustomCategory> CustomCategories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -122,5 +123,29 @@ public class AppDbContext : IdentityDbContext<AppUser>
             .HasMany(p => p.Tags)
             .WithMany(t => t.Posts)
             .UsingEntity(j => j.ToTable("PostTags"));
+
+        builder.Entity<PlaceRating>()
+        .HasOne(r => r.Place)
+        .WithMany(p => p.Ratings)
+        .HasForeignKey(r => r.PlaceId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PlaceRating>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PlaceRating>()
+            .HasIndex(r => new { r.UserId, r.PlaceId })
+            .IsUnique();
+
+        builder.Entity<PlaceRating>()
+        .ToTable(t =>
+        {
+            t.HasCheckConstraint(
+                "CK_PlaceRatings_Value_Range",
+                "\"Value\" >= 1 AND \"Value\" <= 5");
+        });
     }
 }

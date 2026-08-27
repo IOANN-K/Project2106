@@ -33,4 +33,5 @@ public class Place
     public string? Description { get; set; }
 
     public List<Post> Posts { get; set; } = new();
+    public List<PlaceRating> Ratings { get; set; } = new();
 }

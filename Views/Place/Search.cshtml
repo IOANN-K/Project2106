@@ -1,0 +1,309 @@
+@model PROJECT2106.ViewModels.PlaceSearchViewModel
+@using PROJECT2106.Models
+
+@{
+    ViewData["Title"] = "Find Places";
+}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Find Places</h1>
+
+        <p class="text-muted mb-0">
+            Search places by name, category and rating.
+        </p>
+    </div>
+
+    <form method="get"
+          asp-controller="Place"
+          asp-action="Search"
+          class="card mb-4">
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-12 col-lg-6">
+                    <label class="form-label">
+                        Place name
+                    </label>
+
+                    <input type="search"
+                           name="query"
+                           value="@Model.Query"
+                           class="form-control"
+                           placeholder="Lake, viewpoint, old factory..." />
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <label class="form-label">
+                        System category
+                    </label>
+
+                    <select name="systemCategory"
+                            id="system-category"
+                            class="form-select">
+
+                        <option value="">Any</option>
+
+                        @foreach (var category in Enum.GetValues<SystemCategory>())
+                        {
+                            if (Model.SystemCategory == category)
+                            {
+                                <option value="@category" selected>
+                                    @category
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@category">
+                                    @category
+                                </option>
+                            }
+                        }
+
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <label class="form-label">
+                        Custom category
+                    </label>
+
+                    <select name="customCategoryId"
+                            id="custom-category"
+                            class="form-select">
+
+                        <option value="">Any</option>
+
+                        @foreach (var category in Model.CustomCategories)
+                        {
+                            if (Model.CustomCategoryId == category.Id)
+                            {
+                                <option value="@category.Id" selected>
+                                    @category.Name
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@category.Id">
+                                    @category.Name
+                                </option>
+                            }
+                        }
+
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <label class="form-label">
+                        Minimum rating
+                    </label>
+
+                    <select name="minimumRating"
+                            class="form-select">
+
+                        <option value="">Any</option>
+
+                        @for (var rating = 1; rating <= 5; rating++)
+                        {
+                            if (Model.MinimumRating == rating)
+                            {
+                                <option value="@rating" selected>
+                                    @rating.0+
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@rating">
+                                    @rating.0+
+                                </option>
+                            }
+                        }
+
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <label class="form-label">
+                        Sort
+                    </label>
+
+                    <select name="sort"
+                            class="form-select">
+
+                        <option value="newest"
+                                selected="@(Model.Sort == "newest")">
+                            Newest
+                        </option>
+
+                        <option value="popular"
+                                selected="@(Model.Sort == "popular")">
+                            Popular
+                        </option>
+
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Search
+                    </button>
+
+                    <a asp-controller="Place"
+                       asp-action="Search"
+                       class="btn btn-outline-secondary">
+                        Clear
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+    @if (Model.Results.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+
+                <h2 class="h5">
+                    No places found
+                </h2>
+
+                <p class="text-muted mb-3">
+                    Try changing the name, category or minimum rating.
+                </p>
+
+                <a asp-controller="Place"
+                   asp-action="Search"
+                   class="btn btn-outline-primary">
+                    Clear filters
+                </a>
+
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-grid gap-3">
+
+            @foreach (var place in Model.Results)
+            {
+                <article class="card">
+
+                    <div class="card-body">
+
+                        <div class="d-flex flex-column
+                                    flex-md-row
+                                    justify-content-between
+                                    gap-3">
+
+                            <div>
+
+                                <h2 class="h5 mb-1">
+                                    @place.Name
+                                </h2>
+
+                                <div class="text-muted small mb-2">
+
+                                    @if (place.SystemCategory.HasValue)
+                                    {
+                                        <span>
+                                            @place.SystemCategory.Value
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>
+                                            @(place.CustomCategoryName
+                                                ?? "Other")
+                                        </span>
+                                    }
+
+                                    <span> · </span>
+
+                                    <span>
+                                        @place.CreatedAt.ToString("dd MMM yyyy")
+                                    </span>
+
+                                </div>
+
+                                <div class="small">
+
+                                    <strong>
+                                        @(place.AverageRating?.ToString("0.0")
+                                            ?? "0.0") / 5
+                                    </strong>
+
+                                    <span class="text-muted">
+                                        (@place.RatingCount rating(s))
+                                    </span>
+
+                                    <span class="mx-1">·</span>
+
+                                    <span>
+                                        @place.PostCount post(s)
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <div class="d-flex
+                                        align-items-start
+                                        gap-2">
+
+                                <a asp-controller="Place"
+                                   asp-action="Details"
+                                   asp-route-id="@place.Id"
+                                   class="btn btn-sm btn-primary">
+                                    Open details
+                                </a>
+
+                                <a asp-controller="Map"
+                                   asp-action="Index"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Open map
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </article>
+            }
+
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const systemCategory =
+                document.getElementById("system-category");
+
+            const customCategory =
+                document.getElementById("custom-category");
+
+            systemCategory?.addEventListener("change", () => {
+                if (systemCategory.value) {
+                    customCategory.value = "";
+                }
+            });
+
+            customCategory?.addEventListener("change", () => {
+                if (customCategory.value) {
+                    systemCategory.value = "";
+                }
+            });
+        })();
+    </script>
+}
