@@ -70,6 +70,9 @@ public class MapController : Controller
                 CustomCategoryName = p.CustomCategory != null
                     ? p.CustomCategory.Name
                     : null,
+                CustomCategoryIconPath = p.CustomCategory != null
+                    ? p.CustomCategory.IconPath
+                    : null,
                 Rating = p.Ratings
                     .Select(r => (double?)r.Value)
                     .Average()
@@ -89,6 +92,8 @@ public class MapController : Controller
                     : p.CustomCategoryName ?? "Other",
 
                 IsCustomCategory = !p.SystemCategory.HasValue,
+
+                IconPath = p.CustomCategoryIconPath,
 
                 Rating = p.Rating
             })

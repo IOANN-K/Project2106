@@ -210,7 +210,7 @@ public class PlaceController : Controller
                 Count = group.Count(),
                 Average = group.Average(r => r.Value)
             })
-            .FirstOrDefaultAsync();
+            .SingleOrDefaultAsync();
 
         int? currentUserRating = null;
 

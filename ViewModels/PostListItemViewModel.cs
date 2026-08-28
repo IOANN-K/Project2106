@@ -8,6 +8,12 @@ public sealed class PostListItemViewModel
 
     public required string AuthorUsername { get; init; }
 
+    public string? AuthorAvatarUrl { get; init; }
+
+    public int? PlaceId { get; init; }
+
+    public string? PlaceName { get; init; }
+
     public required string Content { get; init; }
 
     public DateTime CreatedAt { get; init; }

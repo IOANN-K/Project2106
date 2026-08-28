@@ -1,6 +1,7 @@
 @model PROJECT2106.Models.Comment
 <li class="comment-item">
-    <div class="comment-head"><div><strong>@(Model.Author?.UserName ?? "Explorer")</strong><div class="small text-muted">@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (Model.IsEdited) { <span>· edited @Model.EditedAt?.ToString("dd MMM yyyy, HH:mm")</span> }</div></div></div>
+    @{ var commentAuthor = Model.Author?.UserName ?? "Explorer"; var commentInitial = commentAuthor.Length > 0 ? commentAuthor[..1].ToUpperInvariant() : "?"; }
+    <div class="comment-head"><div class="author-block"><a asp-controller="Profile" asp-action="Index" asp-route-username="@commentAuthor" class="author-avatar-link" aria-label="View @commentAuthor's profile">@if (!string.IsNullOrWhiteSpace(Model.Author?.AvatarUrl)) { <img src="@Model.Author.AvatarUrl" alt="" class="author-avatar-image avatar-sm" loading="lazy" /><span class="avatar avatar-sm avatar-fallback d-none">@commentInitial</span> } else { <span class="avatar avatar-sm">@commentInitial</span> }</a><div class="author-copy"><a asp-controller="Profile" asp-action="Index" asp-route-username="@commentAuthor" class="author-link">@commentAuthor</a><small>@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (Model.IsEdited) { <span>· edited @Model.EditedAt?.ToString("dd MMM yyyy, HH:mm")</span> }</small></div></div></div>
     <p id="comment-text-@Model.Id" class="comment-content">@Model.Content</p>
     <div class="comment-actions">
         @if (User.Identity?.IsAuthenticated == true)

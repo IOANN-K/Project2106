@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using PROJECT2106.Data;
 using PROJECT2106.Models;
+using PROJECT2106.ViewModels;
 
 namespace PROJECT2106.Controllers;
 
@@ -10,11 +12,28 @@ public class ProfileController : Controller
 {
     private readonly UserManager<AppUser> _userManager;
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment? _environment;
 
-    public ProfileController(UserManager<AppUser> userManager, AppDbContext db)
+    private const long MaxAvatarSizeBytes = 5 * 1024 * 1024;
+    private const string AvatarUrlPrefix = "/uploads/avatars/";
+
+    private static readonly IReadOnlyDictionary<string, string> AllowedAvatarTypes =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".png"] = "image/png",
+            [".webp"] = "image/webp"
+        };
+
+    public ProfileController(
+        UserManager<AppUser> userManager,
+        AppDbContext db,
+        IWebHostEnvironment? environment = null)
     {
         _userManager = userManager;
         _db = db;
+        _environment = environment;
     }
 
     public async Task<IActionResult> Index(
@@ -44,22 +63,22 @@ public class ProfileController : Controller
             .OrderByDescending(p => p.CreatedAt)
             .Skip((page - 1) * contributionPageSize)
             .Take(contributionPageSize)
-            .Select(p => new Post
+            .Select(p => new ProfileContributionCardViewModel
             {
                 Id = p.Id,
-                AuthorId = p.AuthorId,
-                Content = p.Content,
+                Excerpt = p.Content.Length > 280
+                    ? p.Content.Substring(0, 280) + "…"
+                    : p.Content,
                 CreatedAt = p.CreatedAt,
                 IsEdited = p.IsEdited,
-                EditedAt = p.EditedAt,
                 PlaceId = p.PlaceId,
-                Place = p.Place == null
-                    ? null
-                    : new Place
-                    {
-                        Id = p.Place.Id,
-                        Name = p.Place.Name
-                    }
+                PlaceName = p.Place != null ? p.Place.Name : null,
+                PreviewImageUrl = p.Media
+                    .Where(m => m.MediaType == PostMediaType.Image)
+                    .OrderBy(m => m.SortOrder)
+                    .ThenBy(m => m.Id)
+                    .Select(m => m.RelativePath)
+                    .FirstOrDefault()
             })
             .ToListAsync();
 
@@ -72,6 +91,24 @@ public class ProfileController : Controller
             .Where(p => p.CreatedByUserId == user.Id)
             .OrderByDescending(p => p.CreatedAt)
             .Take(12)
+            .Select(p => new ProfilePlaceCardViewModel
+            {
+                Id = p.Id,
+                Name = p.Name,
+                SystemCategory = p.SystemCategory,
+                CustomCategoryName = p.CustomCategory != null
+                    ? p.CustomCategory.Name
+                    : null,
+                CreatedAt = p.CreatedAt,
+                PreviewImageUrl = p.Posts
+                    .SelectMany(post => post.Media)
+                    .Where(media => media.MediaType == PostMediaType.Image)
+                    .OrderByDescending(media => media.Post!.CreatedAt)
+                    .ThenBy(media => media.SortOrder)
+                    .ThenBy(media => media.Id)
+                    .Select(media => media.RelativePath)
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
         var followersCount = await _db.Follows
@@ -144,6 +181,116 @@ public class ProfileController : Controller
         return View(model);
     }
 
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> Edit()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        return View(new EditProfileViewModel
+        {
+            Bio = user.Bio,
+            CurrentAvatarUrl = user.AvatarUrl,
+            Username = user.UserName ?? string.Empty
+        });
+    }
+
+    [HttpPost]
+    [Authorize]
+    public async Task<IActionResult> Edit(EditProfileViewModel model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Challenge();
+
+        model.Username = user.UserName ?? string.Empty;
+        model.CurrentAvatarUrl = user.AvatarUrl;
+
+        string? extension = null;
+        if (model.Avatar != null)
+        {
+            extension = ValidateAvatar(model.Avatar);
+        }
+
+        if (!ModelState.IsValid)
+            return View(model);
+
+        string? newAvatarUrl = null;
+        string? newAvatarPath = null;
+
+        if (model.Avatar != null && extension != null)
+        {
+            try
+            {
+                var avatarDirectory = GetUploadDirectory("avatars");
+                Directory.CreateDirectory(avatarDirectory);
+
+                var storedFileName = $"{Guid.NewGuid():N}{extension}";
+                newAvatarPath = Path.Combine(avatarDirectory, storedFileName);
+
+                await using var stream = new FileStream(
+                    newAvatarPath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None);
+
+                await model.Avatar.CopyToAsync(stream);
+                newAvatarUrl = AvatarUrlPrefix + storedFileName;
+            }
+            catch (IOException)
+            {
+                DeleteFileIfPresent(newAvatarPath);
+                ModelState.AddModelError(nameof(model.Avatar), "The profile photo could not be saved. Please try again.");
+                return View(model);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                DeleteFileIfPresent(newAvatarPath);
+                ModelState.AddModelError(nameof(model.Avatar), "The profile photo could not be saved. Please try again.");
+                return View(model);
+            }
+        }
+
+        var previousAvatarUrl = user.AvatarUrl;
+        user.Bio = model.Bio?.Trim() ?? string.Empty;
+
+        if (newAvatarUrl != null)
+            user.AvatarUrl = newAvatarUrl;
+
+        IdentityResult result;
+
+        try
+        {
+            result = await _userManager.UpdateAsync(user);
+        }
+        catch
+        {
+            DeleteFileIfPresent(newAvatarPath);
+            throw;
+        }
+
+        if (!result.Succeeded)
+        {
+            DeleteFileIfPresent(newAvatarPath);
+            user.AvatarUrl = previousAvatarUrl;
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+
+            model.CurrentAvatarUrl = previousAvatarUrl;
+            return View(model);
+        }
+
+        if (newAvatarUrl != null)
+            DeleteManagedUpload(previousAvatarUrl, AvatarUrlPrefix, "avatars");
+
+        TempData["StatusMessage"] = "Your profile has been updated.";
+
+        return RedirectToAction(nameof(Index), new { username = user.UserName });
+    }
+
     public async Task<IActionResult> Search(string query)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -152,9 +299,87 @@ public class ProfileController : Controller
         }
 
         var users = await _userManager.Users
-            .Where(u => u.UserName.Contains(query))
+            .Where(u =>
+                u.UserName != null &&
+                u.UserName.Contains(query))
             .ToListAsync();
 
         return View(users);
+    }
+
+    private string? ValidateAvatar(IFormFile file)
+    {
+        if (file.Length <= 0)
+        {
+            ModelState.AddModelError(nameof(EditProfileViewModel.Avatar), "The selected profile photo is empty.");
+            return null;
+        }
+
+        if (file.Length > MaxAvatarSizeBytes)
+        {
+            ModelState.AddModelError(nameof(EditProfileViewModel.Avatar), "Profile photos cannot exceed 5 MB.");
+            return null;
+        }
+
+        var extension = Path.GetExtension(Path.GetFileName(file.FileName)).ToLowerInvariant();
+
+        if (!AllowedAvatarTypes.TryGetValue(extension, out var expectedMimeType) ||
+            !string.Equals(file.ContentType, expectedMimeType, StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(nameof(EditProfileViewModel.Avatar), "Use a JPG, PNG, or WebP image.");
+            return null;
+        }
+
+        return extension;
+    }
+
+    private string GetUploadDirectory(string directoryName)
+    {
+        var webRoot = _environment?.WebRootPath;
+        if (string.IsNullOrWhiteSpace(webRoot))
+            webRoot = Path.Combine(_environment?.ContentRootPath ?? Directory.GetCurrentDirectory(), "wwwroot");
+
+        return Path.Combine(webRoot, "uploads", directoryName);
+    }
+
+    private void DeleteManagedUpload(string? relativeUrl, string prefix, string directoryName)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl) ||
+            !relativeUrl.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var fileName = relativeUrl[prefix.Length..];
+        if (string.IsNullOrWhiteSpace(fileName) || fileName != Path.GetFileName(fileName))
+            return;
+
+        var directory = Path.GetFullPath(GetUploadDirectory(directoryName));
+        var candidate = Path.GetFullPath(Path.Combine(directory, fileName));
+
+        if (!candidate.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            return;
+
+        DeleteFileIfPresent(candidate);
+    }
+
+    private static void DeleteFileIfPresent(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        try
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
+        catch (IOException)
+        {
+            // File cleanup is best-effort after the database update.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // File cleanup is best-effort after the database update.
+        }
     }
 }

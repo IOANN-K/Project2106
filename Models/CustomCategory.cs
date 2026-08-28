@@ -19,5 +19,8 @@ public class CustomCategory
 
     public bool IsActive { get; set; } = true;
 
+    [StringLength(500)]
+    public string? IconPath { get; set; }
+
     public List<Place> Places { get; set; } = new();
 }

@@ -14,5 +14,7 @@ public sealed class PlaceMarkerViewModel
 
     public bool IsCustomCategory { get; init; }
 
+    public string? IconPath { get; init; }
+
     public double? Rating { get; init; }
 }

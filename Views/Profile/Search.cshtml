@@ -2,10 +2,10 @@
 @{ ViewData["Title"] = "Find Explorers"; }
 <div class="page-shell page-shell-narrow">
     <header class="page-header"><div><p class="page-eyebrow">Explorer network</p><h1 class="page-title page-title-sm">Find explorers</h1><p class="page-subtitle">Search the community and follow people whose discoveries inspire you.</p></div></header>
-    <form method="get" asp-controller="Profile" asp-action="Search" class="filters-panel"><div class="d-flex flex-column flex-sm-row gap-2"><input type="search" name="query" value="@Context.Request.Query["query"]" placeholder="Search by username..." class="form-control" autofocus /><button type="submit" class="btn btn-primary">Search</button></div></form>
+    <form method="get" asp-controller="Profile" asp-action="Search" class="filters-panel"><div class="d-flex flex-column flex-sm-row gap-2"><input type="search" name="query" value="@Context.Request.Query["query"]" placeholder="Search by explorer name..." class="form-control" autofocus /><button type="submit" class="btn btn-primary">Search</button></div></form>
     @if (Model != null && Model.Any())
     {
-        <div class="place-results">@foreach (var user in Model) { var name = user.UserName ?? "Explorer"; var initial = name.Length > 0 ? name[..1].ToUpperInvariant() : "?"; <article class="place-card"><div class="author-block"><span class="avatar avatar-md">@initial</span><div><h2 class="m-0">@name</h2><small class="text-muted">Atlas explorer</small></div></div><a asp-controller="Profile" asp-action="Index" asp-route-username="@user.UserName" class="btn btn-sm btn-outline-primary">View profile</a></article> }</div>
+        <div class="place-results">@foreach (var user in Model) { var name = user.UserName ?? "Explorer"; var initial = name.Length > 0 ? name[..1].ToUpperInvariant() : "?"; <article class="place-card"><div class="author-block">@if (!string.IsNullOrWhiteSpace(user.AvatarUrl)) { <img src="@user.AvatarUrl" alt="" class="author-avatar-image avatar-md" loading="lazy" /><span class="avatar avatar-md avatar-fallback d-none">@initial</span> } else { <span class="avatar avatar-md">@initial</span> }<div><h2 class="m-0">@name</h2><small class="text-muted">Atlas explorer</small></div></div><a asp-controller="Profile" asp-action="Index" asp-route-username="@user.UserName" class="btn btn-sm btn-outline-primary">View profile</a></article> }</div>
     }
     else if (Context.Request.Query["query"].Count > 0) { <div class="empty-state"><h2>No explorers found</h2><p>Check the spelling or try a shorter username.</p></div> }
 </div>

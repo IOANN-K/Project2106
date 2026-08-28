@@ -6,6 +6,8 @@ public sealed class FeedItemViewModel
 
     public required string AuthorUsername { get; init; }
 
+    public string? AuthorAvatarUrl { get; init; }
+
     public int PlaceId { get; init; }
 
     public required string PlaceName { get; init; }

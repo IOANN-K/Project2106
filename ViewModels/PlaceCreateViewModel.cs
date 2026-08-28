@@ -21,7 +21,7 @@ public sealed class PlaceCreateViewModel
     public string? Description { get; set; }
 
     [StringLength(5000)]
-    [Display(Name = "Initial post")]
+    [Display(Name = "Initial contribution")]
     public string? InitialPostContent { get; set; }
 
     public SystemCategory? SystemCategory { get; set; }

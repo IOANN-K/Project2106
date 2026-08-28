@@ -1,0 +1,57 @@
+@model PROJECT2106.ViewModels.EditProfileViewModel
+@{
+    ViewData["Title"] = "Edit Profile";
+    var initial = string.IsNullOrWhiteSpace(Model.Username) ? "?" : Model.Username[..1].ToUpperInvariant();
+}
+
+<div class="page-shell page-shell-narrow">
+    <a asp-controller="Profile" asp-action="Index" asp-route-username="@Model.Username" class="breadcrumb-link">← Back to profile</a>
+    <header class="page-header">
+        <div>
+            <p class="page-eyebrow">Explorer settings</p>
+            <h1 class="page-title page-title-sm">Edit profile</h1>
+            <p class="page-subtitle">Update how other explorers see you across Atlas.</p>
+        </div>
+    </header>
+
+    <form method="post" enctype="multipart/form-data" class="content-card settings-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="settings-avatar-row">
+            <div class="avatar-preview">
+                @if (!string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl))
+                {
+                    <img src="@Model.CurrentAvatarUrl" alt="Current profile photo" class="profile-avatar-image rounded-circle" />
+                    <div class="avatar avatar-lg avatar-fallback d-none">@initial</div>
+                }
+                else
+                {
+                    <div class="avatar avatar-lg">@initial</div>
+                }
+            </div>
+            <div class="flex-grow-1">
+                <label asp-for="Avatar" class="form-label"></label>
+                <input asp-for="Avatar" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                <span asp-validation-for="Avatar" class="text-danger small"></span>
+                <div class="form-text">JPG, PNG, or WebP. Maximum 5 MB.</div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label asp-for="Bio" class="form-label"></label>
+            <textarea asp-for="Bio" class="form-control" rows="7" maxlength="1000" placeholder="Tell the community what you explore and research..."></textarea>
+            <span asp-validation-for="Bio" class="text-danger small"></span>
+            <div class="form-text">Up to 1000 characters. Line breaks are preserved.</div>
+        </div>
+
+        <div class="action-toolbar">
+            <button type="submit" class="btn btn-primary">Save changes</button>
+            <a asp-controller="Profile" asp-action="Index" asp-route-username="@Model.Username" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

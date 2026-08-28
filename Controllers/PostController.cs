@@ -137,6 +137,13 @@ public class PostController : Controller
                         ? p.Author.UserName
                         : "Unknown",
 
+                AuthorAvatarUrl = p.Author != null
+                    ? p.Author.AvatarUrl
+                    : null,
+
+                PlaceId = p.PlaceId,
+                PlaceName = p.Place != null ? p.Place.Name : null,
+
                 Content = p.Content,
                 CreatedAt = p.CreatedAt,
 
@@ -230,7 +237,7 @@ public class PostController : Controller
                 return BadRequest("Parent comment does not exist.");
 
             if (parentComment.PostId != postId)
-                return BadRequest("Parent comment belongs to another post.");
+                return BadRequest("Parent comment belongs to another contribution.");
         }
 
         var userId = _userManager.GetUserId(User);
@@ -338,7 +345,7 @@ public class PostController : Controller
         {
             ModelState.AddModelError(
                 nameof(model.MediaFiles),
-                $"A post can contain at most {MaxMediaFiles} media files.");
+                $"A contribution can contain at most {MaxMediaFiles} media files.");
         }
 
         foreach (var file in model.MediaFiles)
@@ -714,7 +721,11 @@ public class PostController : Controller
                     p.Author != null &&
                     p.Author.UserName != null
                         ? p.Author.UserName
-                        : "Unknown user",
+                        : "Unknown explorer",
+
+                AuthorAvatarUrl = p.Author != null
+                    ? p.Author.AvatarUrl
+                    : null,
 
                 PlaceId = p.PlaceId!.Value,
 

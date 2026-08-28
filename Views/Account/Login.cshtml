@@ -6,13 +6,13 @@
 
 <div class="auth-shell">
     <section class="auth-card surface-card">
-        <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 3.5 21l8.5-4.1 8.5 4.1L12 2Zm0 5.2 3.9 8.8-3.9-1.9L8.1 16 12 7.2Z"/></svg></span><strong>Atlas</strong></div>
+        <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><img src="~/images/brand/atlas-icon.png" alt="" class="brand-icon" onerror="this.hidden=true;this.nextElementSibling.hidden=false" /><svg class="brand-icon-fallback" viewBox="0 0 24 24" hidden><path d="M12 2 3.5 21l8.5-4.1 8.5 4.1L12 2Zm0 5.2 3.9 8.8-3.9-1.9L8.1 16 12 7.2Z"/></svg></span><span><strong>Atlas</strong><small>Explorer Network</small></span></div>
         <p class="page-eyebrow">Welcome back</p><h1>Continue exploring</h1><p class="text-muted mb-4">Sign in to see your feed, map, and latest activity.</p>
         <form method="post">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="All" class="alert alert-danger"></div>
             <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="email" /><span asp-validation-for="Email" class="text-danger small"></span></div>
-            <div class="mb-3"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="current-password" /><span asp-validation-for="Password" class="text-danger small"></span></div>
+            <div class="mb-3"><div class="d-flex justify-content-between gap-3"><label asp-for="Password" class="form-label"></label><a asp-action="ForgotPassword" class="small">Forgot password?</a></div><input asp-for="Password" class="form-control" autocomplete="current-password" /><span asp-validation-for="Password" class="text-danger small"></span></div>
             <div class="form-check mb-3"><input asp-for="RememberMe" class="form-check-input" /><label asp-for="RememberMe" class="form-check-label">Remember me</label></div>
             <button type="submit" class="btn btn-primary">Log in</button>
             <p class="text-center text-muted small mt-3 mb-0">New to Atlas? <a asp-action="Register">Create an account</a></p>

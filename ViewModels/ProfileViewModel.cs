@@ -6,11 +6,11 @@ public sealed class ProfileViewModel
 {
     public required AppUser User { get; init; }
 
-    public IReadOnlyList<Post> Contributions { get; init; }
-        = Array.Empty<Post>();
+    public IReadOnlyList<ProfileContributionCardViewModel> Contributions { get; init; }
+        = Array.Empty<ProfileContributionCardViewModel>();
 
-    public IReadOnlyList<Place> CreatedPlaces { get; init; }
-        = Array.Empty<Place>();
+    public IReadOnlyList<ProfilePlaceCardViewModel> CreatedPlaces { get; init; }
+        = Array.Empty<ProfilePlaceCardViewModel>();
 
     public int ContributionsCount { get; init; }
 

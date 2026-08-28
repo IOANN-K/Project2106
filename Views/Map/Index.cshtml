@@ -119,7 +119,7 @@
                     },
                     error => {
                         console.info(
-                            "User location is unavailable.",
+                            "Your location is unavailable.",
                             error.message
                         );
                     },
@@ -131,60 +131,86 @@
                 );
             }
 
+            const markerIcons = Object.freeze({
+                nature: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22V9m0 8-5-5m5 1 5-5M5 11l7-9 7 9a7 7 0 0 1-14 0Z"/></svg>',
+                landmark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 18h18v3H3v-3Zm9-16 9 5H3l9-5Z"/></svg>',
+                viewpoint: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 19 6-10 3 5 2-3 7 8H3Zm2-11 2-3 2 3M16 7l2-3 2 3"/></svg>',
+                food: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v8m-3-8v5a3 3 0 0 0 6 0V2M6 10v12m9-20v20m0-20c4 2 5 7 0 10"/></svg>',
+                shop: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Zm4 2V6a3 3 0 0 1 6 0v4"/></svg>',
+                abandoned: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V8l5-3v4l5-4v5l8-4v15H3Zm5-7h2m4 0h2m-8 4h2m4 0h2"/></svg>',
+                camping: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 18H3L12 3Zm0 0v18m-5 0 5-7 5 7"/></svg>',
+                photoSpot: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v10H2V9a2 2 0 0 1 2-2Zm8 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>',
+                other: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Zm-8 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>',
+                custom: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2l-5-4.9 6.9-1L12 2Z"/></svg>'
+            });
+
             const markerPresentation = {
                 Nature: {
                     cssClass: "marker-nature",
-                    symbol: "N"
+                    svg: markerIcons.nature
                 },
                 Landmark: {
                     cssClass: "marker-landmark",
-                    symbol: "L"
+                    svg: markerIcons.landmark
                 },
                 Viewpoint: {
                     cssClass: "marker-viewpoint",
-                    symbol: "V"
+                    svg: markerIcons.viewpoint
                 },
                 Food: {
                     cssClass: "marker-food",
-                    symbol: "F"
+                    svg: markerIcons.food
                 },
                 Shop: {
                     cssClass: "marker-shop",
-                    symbol: "S"
+                    svg: markerIcons.shop
                 },
                 Abandoned: {
                     cssClass: "marker-abandoned",
-                    symbol: "A"
+                    svg: markerIcons.abandoned
                 },
                 Camping: {
                     cssClass: "marker-camping",
-                    symbol: "C"
+                    svg: markerIcons.camping
                 },
                 PhotoSpot: {
                     cssClass: "marker-photospot",
-                    symbol: "P"
+                    svg: markerIcons.photoSpot
                 },
                 Other: {
                     cssClass: "marker-other",
-                    symbol: "O"
+                    svg: markerIcons.other
                 }
+            };
+
+            const customMarkerPresentation = {
+                cssClass: "marker-custom",
+                svg: markerIcons.custom
             };
 
             function createPlaceIcon(place) {
                 const presentation = place.isCustomCategory
-                    ? {
-                        cssClass: "marker-custom",
-                        symbol: "★"
-                    }
+                    ? customMarkerPresentation
                     : markerPresentation[place.category]
                         ?? markerPresentation.Other;
+
+                const customIconPath =
+                    typeof place.iconPath === "string" &&
+                    /^\/uploads\/category-icons\/[a-f0-9]{32}\.(?:png|jpe?g|webp)$/i.test(place.iconPath)
+                        ? place.iconPath
+                        : null;
+
+                const markerContent =
+                    place.isCustomCategory && customIconPath
+                        ? `<img src="${customIconPath}" alt="" class="map-marker-uploaded-icon" />`
+                        : presentation.svg;
 
                 return L.divIcon({
                     className: "",
                     html: `
                         <div class="map-marker ${presentation.cssClass}">
                             <span class="map-marker-symbol">
-                                ${presentation.symbol}
+                                ${markerContent}
                             </span>
                         </div>
                     `,
@@ -205,29 +231,30 @@
                 );
 
                 const entries = [
-                    ["marker-nature", "Nature"],
-                    ["marker-landmark", "Landmark"],
-                    ["marker-viewpoint", "Viewpoint"],
-                    ["marker-food", "Food"],
-                    ["marker-shop", "Shop"],
-                    ["marker-abandoned", "Abandoned"],
-                    ["marker-camping", "Camping"],
-                    ["marker-photospot", "Photo Spot"],
-                    ["marker-other", "Other"],
-                    ["marker-custom", "Custom category"]
+                    [markerPresentation.Nature, "Nature"],
+                    [markerPresentation.Landmark, "Landmark"],
+                    [markerPresentation.Viewpoint, "Viewpoint"],
+                    [markerPresentation.Food, "Food"],
+                    [markerPresentation.Shop, "Shop"],
+                    [markerPresentation.Abandoned, "Abandoned"],
+                    [markerPresentation.Camping, "Camping"],
+                    [markerPresentation.PhotoSpot, "Photo Spot"],
+                    [markerPresentation.Other, "Other"],
+                    [customMarkerPresentation, "Custom category"]
                 ];
 
-                for (const [cssClass, label] of entries) {
+                for (const [presentation, label] of entries) {
                     const row = document.createElement("div");
                     row.className = "map-legend-row";
 
-                    const dot = document.createElement("span");
-                    dot.className = `map-legend-dot ${cssClass}`;
+                    const icon = document.createElement("span");
+                    icon.className = `map-legend-icon ${presentation.cssClass}`;
+                    icon.innerHTML = presentation.svg;
 
                     const text = document.createElement("span");
                     text.textContent = label;
 
-                    row.appendChild(dot);
+                    row.appendChild(icon);
                     row.appendChild(text);
                     container.appendChild(row);
                 }
