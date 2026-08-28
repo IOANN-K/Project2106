@@ -1,361 +1,130 @@
 @model PROJECT2106.ViewModels.PlaceDetailsViewModel
 @using System.Security.Claims
-
 @{
     ViewData["Title"] = Model.Place.Name;
-
-    var currentUserId =
-        User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-    var canAttemptDelete =
-        User.Identity?.IsAuthenticated == true &&
-        (Model.Place.CreatedByUserId == currentUserId ||
-         User.IsInRole("Admin"));
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var canAttemptDelete = User.Identity?.IsAuthenticated == true &&
+        (Model.Place.CreatedByUserId == currentUserId || User.IsInRole("Admin"));
+    var category = Model.Place.SystemCategory?.ToString() ?? Model.Place.CustomCategory?.Name ?? "Uncategorized";
 }
 
-<div class="container py-4">
-
-    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+<div class="page-shell">
+    <a asp-controller="Map" asp-action="Index" class="breadcrumb-link"><span aria-hidden="true">←</span> Back to Explore</a>
+    <header class="page-header">
         <div>
-            <h1 class="mb-2">@Model.Place.Name</h1>
-
-            <div class="text-muted">
-                Created by
-                <strong>@(Model.Place.CreatedByUser?.UserName ?? "Unknown user")</strong>
-                on
-                @Model.Place.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+            <span class="category-badge">@category</span>
+            <h1 class="page-title mt-2">@Model.Place.Name</h1>
+            <div class="metadata-row mt-2">
+                <span>Created by <strong>@(Model.Place.CreatedByUser?.UserName ?? "Unknown user")</strong></span>
+                <span>@Model.Place.CreatedAt.ToString("dd MMM yyyy, HH:mm")</span>
             </div>
         </div>
-
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <div class="d-flex gap-2">
-                <a asp-controller="Post"
-                   asp-action="Create"
-                   asp-route-placeId="@Model.Place.Id"
-                   class="btn btn-primary">
-                    Add Post
-                </a>
-
+            <div class="action-toolbar">
+                <a asp-controller="Post" asp-action="Create" asp-route-placeId="@Model.Place.Id" class="btn btn-primary">Add contribution</a>
                 @if (canAttemptDelete)
                 {
-                    <a asp-action="Delete"
-                       asp-route-id="@Model.Place.Id"
-                       class="btn btn-outline-danger">
-                        Delete Place
-                    </a>
+                    <a asp-action="Delete" asp-route-id="@Model.Place.Id" class="btn btn-outline-danger">Delete</a>
                 }
             </div>
         }
-    </div>
+    </header>
 
-    <div class="row g-4 mb-5">
-
-        <div class="col-md-8">
-            <div class="card h-100">
-                <div class="card-body">
-
-                    <h5 class="card-title">Place information</h5>
-
-                    <dl class="row mb-0">
-
-                        <dt class="col-sm-4">Category</dt>
-                        <dd class="col-sm-8">
-                            @if (Model.Place.SystemCategory.HasValue)
-                            {
-                                <span class="badge text-bg-primary">
-                                    @Model.Place.SystemCategory
-                                </span>
-                            }
-                            else if (Model.Place.CustomCategory != null)
-                            {
-                                <span class="badge text-bg-secondary">
-                                    @Model.Place.CustomCategory.Name
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="text-muted">Unknown</span>
-                            }
-                        </dd>
-
-                        <dt class="col-sm-4">Latitude</dt>
-                        <dd class="col-sm-8">
-                            @Model.Place.Latitude.ToString("F6")
-                        </dd>
-
-                        <dt class="col-sm-4">Longitude</dt>
-                        <dd class="col-sm-8">
-                            @Model.Place.Longitude.ToString("F6")
-                        </dd>
-
-                        <dt class="col-sm-4">Posts</dt>
-                        <dd class="col-sm-8">
-                            @Model.PostCount
-                        </dd>
-
-                    </dl>
-
-                    @if (!string.IsNullOrWhiteSpace(Model.Place.Description))
-                    {
-                        <hr />
-
-                        <p class="mb-0">
-                            @Model.Place.Description
-                        </p>
-                    }
-
-                </div>
+    <div class="place-detail-grid">
+        <section class="content-card">
+            <p class="page-eyebrow">About this place</p>
+            <h2 class="section-title">Field information</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.Place.Description))
+            {
+                <p class="pre-line mt-3 mb-0">@Model.Place.Description</p>
+            }
+            else
+            {
+                <p class="text-muted mt-3 mb-0">No description has been added yet.</p>
+            }
+            <div class="detail-list">
+                <div class="detail-item"><span>Latitude</span><strong>@Model.Place.Latitude.ToString("F6")</strong></div>
+                <div class="detail-item"><span>Longitude</span><strong>@Model.Place.Longitude.ToString("F6")</strong></div>
+                <div class="detail-item"><span>Contributions</span><strong>@Model.PostCount</strong></div>
             </div>
-        </div>
+        </section>
 
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body">
-
-                    <h5 class="card-title">Rating</h5>
-
-                    @if (Model.AverageRating.HasValue)
-                    {
-                        <div class="fs-3 fw-bold">
-                            @Model.AverageRating.Value.ToString("0.0") / 5
-                        </div>
-
-                        <div class="text-muted mb-3">
-                            @Model.RatingCount rating(s)
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="fs-3 fw-bold">
-                            0.0 / 5
-                        </div>
-
-                        <div class="text-muted mb-3">
-                            No ratings yet.
-                        </div>
-                    }
-
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        @if (TempData["RatingError"] is string ratingError)
+        <aside class="content-card">
+            <p class="page-eyebrow">Explorer rating</p>
+            <div class="rating-score"><strong>@(Model.AverageRating?.ToString("0.0") ?? "0.0")</strong><span>/ 5</span></div>
+            <p class="text-muted small">@(Model.RatingCount == 0 ? "No ratings yet" : $"Based on {Model.RatingCount} rating(s)")</p>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                @if (TempData["RatingError"] is string ratingError) { <div class="alert alert-danger py-2">@ratingError</div> }
+                <form asp-controller="Place" asp-action="Rate" method="post" class="mt-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PlaceId" value="@Model.Place.Id" />
+                    <label class="form-label" for="place-rating">Your rating</label>
+                    <select id="place-rating" name="Value" class="form-select mb-2" required>
+                        <option value="">Choose a score</option>
+                        @for (var value = 1; value <= 5; value++)
                         {
-                            <div class="alert alert-danger py-2">
-                                @ratingError
-                            </div>
+                            if (Model.CurrentUserRating == value) { <option value="@value" selected>@value — @(value == 5 ? "Exceptional" : value == 4 ? "Great" : value == 3 ? "Good" : value == 2 ? "Fair" : "Poor")</option> }
+                            else { <option value="@value">@value — @(value == 5 ? "Exceptional" : value == 4 ? "Great" : value == 3 ? "Good" : value == 2 ? "Fair" : "Poor")</option> }
                         }
-
-                        <form asp-controller="Place"
-                              asp-action="Rate"
-                              method="post">
-
-                            @Html.AntiForgeryToken()
-
-                            <input type="hidden"
-                                   name="PlaceId"
-                                   value="@Model.Place.Id" />
-
-                            <label class="form-label">
-                                Your rating
-                            </label>
-
-                            <select name="Value"
-                                    class="form-select mb-2"
-                                    required>
-                                <option value="">Choose...</option>
-
-                                @for (var value = 1; value <= 5; value++)
-                                {
-                                    if (Model.CurrentUserRating == value)
-                                    {
-                                        <option value="@value" selected>
-                                            @value
-                                        </option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@value">
-                                            @value
-                                        </option>
-                                    }
-                                }
-                            </select>
-
-                            <button type="submit"
-                                    class="btn btn-primary btn-sm">
-                                @(Model.CurrentUserRating.HasValue
-                                    ? "Update rating"
-                                    : "Rate place")
-                            </button>
-                        </form>
-                    }
-
-                </div>
-            </div>
-        </div>
-
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm">@(Model.CurrentUserRating.HasValue ? "Update rating" : "Rate place")</button>
+                </form>
+            }
+        </aside>
     </div>
 
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-
-        <div>
-            <h2 class="h4 mb-0">
-                Posts
-                <span class="text-muted">(@Model.PostCount)</span>
-            </h2>
+    <div class="section-heading">
+        <div><p class="page-eyebrow mb-1">Community field notes</p><h2 class="section-title">Contributions <span class="text-muted">@Model.PostCount</span></h2></div>
+        <div class="segmented-control" role="group" aria-label="Contribution sorting">
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="newest" class="btn @(Model.Sort == "newest" ? "active" : "")">Newest</a>
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="oldest" class="btn @(Model.Sort == "oldest" ? "active" : "")">Oldest</a>
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="most-liked" class="btn @(Model.Sort == "most-liked" ? "active" : "")">Most liked</a>
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="most-discussed" class="btn @(Model.Sort == "most-discussed" ? "active" : "")">Discussed</a>
         </div>
-
-        <div class="btn-group" role="group" aria-label="Post sorting">
-
-            <a asp-action="Details"
-               asp-route-id="@Model.Place.Id"
-               asp-route-sort="newest"
-               class="btn @(Model.Sort == "newest" ? "btn-dark" : "btn-outline-dark")">
-                Newest
-            </a>
-
-            <a asp-action="Details"
-               asp-route-id="@Model.Place.Id"
-               asp-route-sort="oldest"
-               class="btn @(Model.Sort == "oldest" ? "btn-dark" : "btn-outline-dark")">
-                Oldest
-            </a>
-
-            <a asp-action="Details"
-               asp-route-id="@Model.Place.Id"
-               asp-route-sort="most-liked"
-               class="btn @(Model.Sort == "most-liked" ? "btn-dark" : "btn-outline-dark")">
-                Most liked
-            </a>
-
-            <a asp-action="Details"
-               asp-route-id="@Model.Place.Id"
-               asp-route-sort="most-discussed"
-               class="btn @(Model.Sort == "most-discussed" ? "btn-dark" : "btn-outline-dark")">
-                Most discussed
-            </a>
-
-        </div>
-
     </div>
 
     @if (Model.Posts.Count == 0)
     {
-        <div class="card">
-            <div class="card-body text-center py-5">
-
-                <h3 class="h5">No posts yet</h3>
-
-                <p class="text-muted mb-3">
-                    Nobody has shared anything about this place yet.
-                </p>
-
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <a asp-controller="Post"
-                       asp-action="Create"
-                       asp-route-placeId="@Model.Place.Id"
-                       class="btn btn-primary">
-                        Add the first post
-                    </a>
-                }
-
-            </div>
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 4V5Z"/></svg></div>
+            <h3>No contributions yet</h3><p>Be the first explorer to share a field note about this place.</p>
+            @if (User.Identity?.IsAuthenticated == true) { <a asp-controller="Post" asp-action="Create" asp-route-placeId="@Model.Place.Id" class="btn btn-primary">Add the first contribution</a> }
         </div>
     }
     else
     {
-        <div class="d-grid gap-3">
-
+        <div class="feed-list feed-shell">
             @foreach (var item in Model.Posts)
             {
                 var post = item.Post;
-
-                <article class="card">
-                    <div class="card-body">
-
-                        <div class="d-flex justify-content-between gap-3 mb-3">
-
-                            <div>
-                                <strong>
-                                    @(post.Author?.UserName ?? "Unknown user")
-                                </strong>
-
-                                <div class="small text-muted">
-                                    @post.CreatedAt.ToString("dd MMM yyyy, HH:mm")
-
-                                    @if (post.IsEdited)
-                                    {
-                                        <span class="ms-1">
-                                            · edited
-                                        </span>
-                                    }
-                                </div>
-                            </div>
-
-                            <div class="small text-muted">
-                                @item.LikeCount like(s)
-                                ·
-                                @item.DislikeCount dislike(s)
-                                ·
-                                @item.CommentCount comment(s)
-                            </div>
-
-                        </div>
-
-                        <p class="mb-3"
-                        style="white-space: pre-wrap;">@post.Content</p>
-
-                        <partial name="_PostMediaGallery"
-                                 model="post.Media" />
-
-                        <a asp-controller="Post"
-                        asp-action="Details"
-                        asp-route-id="@post.Id"
-                        class="btn btn-sm btn-outline-secondary">
-                            Open post
-                        </a>
-
+                var author = post.Author?.UserName ?? "Unknown user";
+                var initial = author.Length > 0 ? author[..1].ToUpperInvariant() : "?";
+                <article class="feed-card">
+                    <header class="feed-card-header">
+                        <div class="author-block"><span class="avatar avatar-md">@initial</span><div><strong>@author</strong><small>@post.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (post.IsEdited) { <span>· edited</span> }</small></div></div>
+                        <span class="category-badge">Field note</span>
+                    </header>
+                    <div class="feed-card-body">
+                        <p class="pre-line">@post.Content</p>
+                        <partial name="_PostMediaGallery" model="post.Media" />
                     </div>
+                    <footer class="feed-card-footer">
+                        <div class="engagement"><span>@item.LikeCount likes</span><span>@item.DislikeCount dislikes</span><span>@item.CommentCount comments</span></div>
+                        <a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-primary">View contribution</a>
+                    </footer>
                 </article>
             }
-
         </div>
     }
 
     @if (Model.TotalPostPages > 1)
     {
-        <nav class="mt-4">
-            <ul class="pagination">
-
-                <li class="page-item @(Model.PostPage > 1 ? "" : "disabled")">
-                    <a class="page-link"
-                       asp-action="Details"
-                       asp-route-id="@Model.Place.Id"
-                       asp-route-sort="@Model.Sort"
-                       asp-route-page="@(Model.PostPage - 1)">
-                        Previous
-                    </a>
-                </li>
-
-                <li class="page-item disabled">
-                    <span class="page-link">
-                        @Model.PostPage / @Model.TotalPostPages
-                    </span>
-                </li>
-
-                <li class="page-item @(Model.PostPage < Model.TotalPostPages ? "" : "disabled")">
-                    <a class="page-link"
-                       asp-action="Details"
-                       asp-route-id="@Model.Place.Id"
-                       asp-route-sort="@Model.Sort"
-                       asp-route-page="@(Model.PostPage + 1)">
-                        Next
-                    </a>
-                </li>
-
-            </ul>
-        </nav>
+        <nav class="mt-4" aria-label="Contribution pages"><ul class="pagination">
+            <li class="page-item @(Model.PostPage > 1 ? "" : "disabled")"><a class="page-link" asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="@Model.Sort" asp-route-page="@(Model.PostPage - 1)">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">@Model.PostPage / @Model.TotalPostPages</span></li>
+            <li class="page-item @(Model.PostPage < Model.TotalPostPages ? "" : "disabled")"><a class="page-link" asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="@Model.Sort" asp-route-page="@(Model.PostPage + 1)">Next</a></li>
+        </ul></nav>
     }
-
 </div>

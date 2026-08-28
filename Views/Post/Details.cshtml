@@ -1,92 +1,45 @@
 @model PROJECT2106.Models.Post
-
 @{
-    ViewData["Title"] = "Post";
+    ViewData["Title"] = "Contribution";
+    var author = Model.Author?.UserName ?? "Explorer";
+    var initial = author.Length > 0 ? author[..1].ToUpperInvariant() : "?";
+    var canManage = Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin");
 }
+<div class="page-shell feed-shell">
+    <a asp-controller="Post" asp-action="Index" class="breadcrumb-link"><span aria-hidden="true">←</span> Back to contributions</a>
+    <article class="feed-card">
+        <header class="feed-card-header"><div class="author-block"><span class="avatar avatar-md">@initial</span><div><strong>@author</strong><small>@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (Model.IsEdited) { <span>· edited @Model.EditedAt?.ToString("dd MMM yyyy, HH:mm")</span> }</small></div></div><span class="category-badge">Contribution #@Model.Id</span></header>
+        <div class="feed-card-body"><p class="pre-line">@Model.Content</p><partial name="_PostMediaGallery" model="Model.Media" /></div>
+        <footer class="feed-card-footer">
+            <div class="action-toolbar">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form method="post" asp-controller="Like" asp-action="ToggleLike"><input type="hidden" name="postId" value="@Model.Id" /><input type="hidden" name="isLike" value="true" /><button type="submit" class="btn btn-sm btn-outline-primary">Like (@ViewBag.Likes)</button></form>
+                    <form method="post" asp-controller="Like" asp-action="ToggleLike"><input type="hidden" name="postId" value="@Model.Id" /><input type="hidden" name="isLike" value="false" /><button type="submit" class="btn btn-sm btn-outline-secondary">Dislike (@ViewBag.Dislikes)</button></form>
+                }
+            </div>
+            @if (canManage) { <div class="action-toolbar"><a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-quiet">Edit</a><a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-danger">Delete</a></div> }
+        </footer>
+    </article>
 
-<h2>Post #@Model.Id</h2>
-
-<div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
-    <p>@Model.Content</p>
-
-    <partial name="_PostMediaGallery"
-             model="Model.Media" />
-
-    <small>@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
-    @if (Model.IsEdited)
-    {
-        <small class="text-muted ms-2">
-            Edited
-            @if (Model.EditedAt.HasValue)
-            {
-                <text>@Model.EditedAt.Value.ToString("dd.MM.yyyy HH:mm")</text>
-            }
-        </small>
-    }
-    @if (User.Identity!.IsAuthenticated)
-    {
-        <form method="post" asp-controller="Like" asp-action="ToggleLike" style="display:inline;">
-            <input type="hidden" name="postId" value="@Model.Id" />
-            <input type="hidden" name="isLike" value="true" />
-            <button type="submit" class="btn btn-sm btn-outline-success">👍 (@ViewBag.Likes)</button>
-        </form>
-        <form method="post" asp-controller="Like" asp-action="ToggleLike" style="display:inline;">
-            <input type="hidden" name="postId" value="@Model.Id" />
-            <input type="hidden" name="isLike" value="false" />
-            <button type="submit" class="btn btn-sm btn-outline-danger">👎 (@ViewBag.Dislikes)</button>
-        </form>
-    }   
+    <section class="content-card mt-4">
+        <div class="section-heading mt-0"><div><p class="page-eyebrow mb-1">Discussion</p><h2 class="section-title">Comments</h2></div></div>
+        @if (TempData["CommentError"] is string commentError) { <div class="alert alert-danger">@commentError</div> }
+        @if (Model.Comments != null && Model.Comments.Any())
+        {
+            <ul class="comments-list">
+                @foreach (var comment in Model.Comments.Where(c => c.ParentCommentId == null).OrderByDescending(c => c.CreatedAt)) { await Html.RenderPartialAsync("_Comment", comment); }
+            </ul>
+        }
+        else { <div class="empty-state py-4"><h3>No comments yet</h3><p class="mb-0">Start the conversation with a useful question or observation.</p></div> }
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" asp-controller="Post" asp-action="AddComment" class="mt-4"><input type="hidden" name="postId" value="@Model.Id" /><label class="form-label" for="new-comment">Add a comment</label><textarea id="new-comment" name="Content" required maxlength="2000" rows="3" class="form-control" placeholder="Share a thoughtful response..."></textarea><button type="submit" class="btn btn-primary mt-2">Post comment</button></form>
+        }
+    </section>
 </div>
-<div style="margin-top: 20px;">
-    <h3>Comments</h3>
-
-    @if (TempData["CommentError"] is string commentError)
-    {
-        <div class="alert alert-danger">@commentError</div>
-    }
-    @if (Model.Comments != null && Model.Comments.Any())
-    {
-        <ul>
-            @foreach (var comment in Model.Comments.Where(c => c.ParentCommentId == null).OrderByDescending(c => c.CreatedAt))
-            {
-                await Html.RenderPartialAsync("_Comment", comment);
-            }
-        </ul>
-        
-    }
-    else
-    {
-        <p>No comments yet.</p>
-    }
-
-    @if (User.Identity!.IsAuthenticated)
-        {
-            <form method="post" asp-controller="Post" asp-action="AddComment">
-                <input type="hidden" name="postId" value="@Model.Id" />
-                <textarea name="Content" required maxlength="2000" rows="3" style="width: 100%; max-width: 600px;" placeholder="Написати коментар..."></textarea>
-                <br />
-                <button type="submit" class="btn btn-primary mt-2">Додати коментар</button>
-            </form>
-        }
-        @if (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin"))
-        {
-            <a asp-action="Edit" asp-route-id="@Model.Id" style="margin-right: 10px;">Edit Post</a>
-            <a asp-action="Delete" asp-route-id="@Model.Id" style="color: red;">Delete Post</a>
-        }
-
-    <script>
-        function startEdit(id) {
-            document.getElementById('comment-text-' + id).style.display = 'none';
-            document.getElementById('comment-edit-form-' + id).style.display = 'block';
-        }
-        function cancelEdit(id) {
-            document.getElementById('comment-text-' + id).style.display = 'inline';
-            document.getElementById('comment-edit-form-' + id).style.display = 'none';
-        }
-        function toggleReply(id) {
-        var form = document.getElementById('reply-form-' + id);
-        form.style.display = form.style.display === 'none' ? 'block' : 'none';
-    }
-    </script>
-<br />
-<a asp-controller="Post" asp-action="Index">← Back to Feed</a>
+<script>
+    function startEdit(id) { document.getElementById('comment-text-' + id).style.display = 'none'; document.getElementById('comment-edit-form-' + id).style.display = 'block'; }
+    function cancelEdit(id) { document.getElementById('comment-text-' + id).style.display = 'block'; document.getElementById('comment-edit-form-' + id).style.display = 'none'; }
+    function toggleReply(id) { const form = document.getElementById('reply-form-' + id); form.style.display = form.style.display === 'none' ? 'block' : 'none'; }
+</script>

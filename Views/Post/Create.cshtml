@@ -1,75 +1,15 @@
 @model PROJECT2106.ViewModels.PostCreateViewModel
-
-@{
-    ViewData["Title"] = "New Post";
-}
-
-<h2>New Post</h2>
-
-<form method="post"
-      enctype="multipart/form-data">
-    @Html.AntiForgeryToken()
-    <input asp-for="PlaceId" type="hidden" />
-
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="alert alert-secondary">
-        Posting to:
-        <strong>@Model.PlaceName</strong>
-    </div>
-
-    <span asp-validation-for="PlaceId"
-        class="text-danger d-block"></span>
-
-    <div style="margin-bottom: 10px;">
-        <label asp-for="Content">Content:</label>
-        <br />
-        <textarea asp-for="Content"
-                  rows="4"
-                  style="width: 100%; max-width: 600px;"></textarea>
-        <br />
-        <span asp-validation-for="Content" class="text-danger"></span>
-    </div>
-
-    <div style="margin-bottom: 10px;">
-        <label asp-for="Tags">Tags (comma separated):</label>
-        <br />
-        <input asp-for="Tags"
-               type="text"
-               style="width: 100%; max-width: 600px;"
-               placeholder="technology, sports, news" />
-        <br />
-        <span asp-validation-for="Tags" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="MediaFiles" class="form-label">
-            Images / videos
-        </label>
-
-        <input asp-for="MediaFiles"
-               type="file"
-               class="form-control"
-               multiple
-               accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,image/jpeg,image/png,image/webp,video/mp4,video/webm" />
-
-        <span asp-validation-for="MediaFiles"
-              class="text-danger"></span>
-
-        <div class="form-text">
-            Up to 10 files. Images up to 10 MB, videos up to 50 MB.
-        </div>
-    </div>
-
-    <button type="submit" style="padding: 8px 20px;">Publish</button>
-    <a asp-controller="Place"
-        asp-action="Details"
-        asp-route-id="@Model.PlaceId"
-        style="margin-left: 10px;">
-        Cancel
-    </a>
-</form>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+@{ ViewData["Title"] = "New Contribution"; }
+<div class="page-shell page-shell-narrow">
+    <header class="page-header"><div><p class="page-eyebrow">Share a field note</p><h1 class="page-title page-title-sm">New contribution</h1><p class="page-subtitle">Add useful context, observations, photos, or video for other explorers.</p></div></header>
+    <form method="post" enctype="multipart/form-data" class="content-card">
+        @Html.AntiForgeryToken()<input asp-for="PlaceId" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="alert alert-secondary">Contributing to <strong>@Model.PlaceName</strong></div><span asp-validation-for="PlaceId" class="text-danger d-block"></span>
+        <div class="mb-3"><label asp-for="Content" class="form-label">Field note</label><textarea asp-for="Content" rows="6" class="form-control" placeholder="What should another explorer know about this place?"></textarea><span asp-validation-for="Content" class="text-danger small"></span></div>
+        <div class="mb-3"><label asp-for="Tags" class="form-label">Tags</label><input asp-for="Tags" class="form-control" placeholder="hiking, architecture, sunset" /><span asp-validation-for="Tags" class="text-danger small"></span><div class="form-text">Separate tags with commas.</div></div>
+        <div class="mb-4"><label asp-for="MediaFiles" class="form-label">Images or videos</label><input asp-for="MediaFiles" type="file" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,image/jpeg,image/png,image/webp,video/mp4,video/webm" /><span asp-validation-for="MediaFiles" class="text-danger small"></span><div class="form-text">Up to 10 files. Images up to 10 MB, videos up to 50 MB.</div></div>
+        <div class="action-toolbar"><button type="submit" class="btn btn-primary">Publish contribution</button><a asp-controller="Place" asp-action="Details" asp-route-id="@Model.PlaceId" class="btn btn-outline-secondary">Cancel</a></div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

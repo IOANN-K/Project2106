@@ -1,210 +1,75 @@
 @model PROJECT2106.ViewModels.PagedResult<PROJECT2106.ViewModels.FeedItemViewModel>
 @using PROJECT2106.Models
-
 @{
     ViewData["Title"] = "My Feed";
 }
 
-<div class="container py-4">
-
-    <div class="mb-4">
-        <h1 class="h3 mb-1">My Feed</h1>
-
-        <p class="text-muted mb-0">
-            New contributions from explorers you follow.
-        </p>
-    </div>
+<div class="page-shell feed-shell">
+    <header class="page-header">
+        <div><p class="page-eyebrow">Your network</p><h1 class="page-title page-title-sm">Explorer feed</h1><p class="page-subtitle">Fresh field notes from the people you follow.</p></div>
+        <a asp-controller="Profile" asp-action="Search" class="btn btn-outline-secondary">Find explorers</a>
+    </header>
 
     @if (Model.Items.Count == 0)
     {
-        <div class="card">
-            <div class="card-body text-center py-5">
-
-                <h2 class="h5">
-                    Your feed is empty
-                </h2>
-
-                <p class="text-muted mb-3">
-                    Follow other explorers to see their latest
-                    contributions here.
-                </p>
-
-                <a asp-controller="Profile"
-                   asp-action="Search"
-                   class="btn btn-primary">
-                    Find explorers
-                </a>
-
-                <a asp-controller="Map"
-                   asp-action="Index"
-                   class="btn btn-outline-secondary ms-2">
-                    Explore map
-                </a>
-
-            </div>
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm10-4v6m3-3h-6"/></svg></div>
+            <h2>Your feed is waiting for a trail</h2>
+            <p>Follow other explorers and their newest contributions will appear here automatically.</p>
+            <div class="action-toolbar justify-content-center"><a asp-controller="Profile" asp-action="Search" class="btn btn-primary">Find explorers</a><a asp-controller="Map" asp-action="Index" class="btn btn-outline-secondary">Explore map</a></div>
         </div>
     }
     else
     {
-        <div class="d-grid gap-3">
-
+        <div class="feed-list">
             @foreach (var item in Model.Items)
             {
-                <article class="card">
-                    <div class="card-body">
-
-                        <div class="d-flex
-                                    justify-content-between
-                                    align-items-start
-                                    gap-3
-                                    mb-3">
-
-                            <div>
-                                <strong>
-                                    @item.AuthorUsername
-                                </strong>
-
-                                <div class="small text-muted">
-                                    @item.CreatedAt.ToString("dd MMM yyyy, HH:mm")
-
-                                    @if (item.IsEdited)
-                                    {
-                                        <span>· edited</span>
-                                    }
-                                </div>
-                            </div>
-
-                            <span class="badge bg-secondary">
-                                @item.Category
-                            </span>
-
+                var initial = string.IsNullOrWhiteSpace(item.AuthorUsername) ? "?" : item.AuthorUsername[..1].ToUpperInvariant();
+                <article class="feed-card">
+                    <header class="feed-card-header">
+                        <div class="author-block">
+                            <span class="avatar avatar-md">@initial</span>
+                            <div><strong>@item.AuthorUsername</strong><small>@item.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (item.IsEdited) { <span>· edited</span> }</small></div>
                         </div>
-
-                        <div class="small text-muted mb-2">
-                            Contribution to
-
-                            <a asp-controller="Place"
-                               asp-action="Details"
-                               asp-route-id="@item.PlaceId">
-                                @item.PlaceName
-                            </a>
-                        </div>
-
-                        <p style="white-space: pre-wrap;">
-                            @item.Excerpt
-                        </p>
-
+                        <span class="category-badge">@item.Category</span>
+                    </header>
+                    <div class="feed-card-body">
+                        <div class="place-context">Contribution to <a asp-controller="Place" asp-action="Details" asp-route-id="@item.PlaceId"><strong>@item.PlaceName</strong></a></div>
+                        <p class="pre-line">@item.Excerpt</p>
                         @if (item.Media != null)
                         {
-                            <div class="mb-3"
-                                 style="max-width: 640px;">
-
+                            <div class="post-media-item mt-3">
                                 @if (item.Media.MediaType == PostMediaType.Image)
                                 {
-                                    <img src="@item.Media.RelativePath"
-                                         alt="@item.Media.OriginalFileName"
-                                         class="img-fluid rounded post-media-image"
-                                         loading="lazy"
-                                         style="width:100%;
-                                                max-height:360px;
-                                                object-fit:cover;" />
-
-                                    <div class="post-media-fallback
-                                                alert alert-secondary
-                                                d-none mb-0">
-                                        Image unavailable
-                                    </div>
+                                    <img src="@item.Media.RelativePath" alt="@item.Media.OriginalFileName" class="post-media-image" loading="lazy" />
+                                    <div class="post-media-fallback alert alert-secondary d-none mb-0">Image unavailable</div>
                                 }
                                 else
                                 {
-                                    <video controls
-                                           preload="metadata"
-                                           class="w-100 rounded post-media-video"
-                                           style="max-height:360px;">
-
-                                        <source src="@item.Media.RelativePath"
-                                                type="@item.Media.MimeType" />
-
-                                    </video>
-
-                                    <div class="post-media-fallback
-                                                alert alert-secondary
-                                                d-none mb-0">
-                                        Video unavailable
-                                    </div>
+                                    <video controls preload="metadata" class="post-media-video"><source src="@item.Media.RelativePath" type="@item.Media.MimeType" /></video>
+                                    <div class="post-media-fallback alert alert-secondary d-none mb-0">Video unavailable</div>
                                 }
-
                             </div>
                         }
-
-                        <div class="d-flex
-                                    flex-wrap
-                                    justify-content-between
-                                    align-items-center
-                                    gap-2">
-
-                            <div class="small text-muted">
-                                👍 @item.LikeCount
-                                ·
-                                💬 @item.CommentCount
-                            </div>
-
-                            <div class="d-flex gap-2">
-
-                                <a asp-controller="Post"
-                                   asp-action="Details"
-                                   asp-route-id="@item.PostId"
-                                   class="btn btn-sm btn-outline-secondary">
-                                    Open post
-                                </a>
-
-                                <a asp-controller="Place"
-                                   asp-action="Details"
-                                   asp-route-id="@item.PlaceId"
-                                   class="btn btn-sm btn-primary">
-                                    Open place
-                                </a>
-
-                            </div>
-
-                        </div>
-
                     </div>
+                    <footer class="feed-card-footer">
+                        <div class="engagement">
+                            <span><svg viewBox="0 0 24 24"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3m0 11V11l4-9c2 0 3 1.5 2.5 3.5L13 8h6a3 3 0 0 1 3 3l-1 7a4 4 0 0 1-4 4H7Z"/></svg>@item.LikeCount</span>
+                            <span><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/></svg>@item.CommentCount</span>
+                        </div>
+                        <div class="action-toolbar"><a asp-controller="Place" asp-action="Details" asp-route-id="@item.PlaceId" class="btn btn-sm btn-quiet">View place</a><a asp-controller="Post" asp-action="Details" asp-route-id="@item.PostId" class="btn btn-sm btn-primary">View contribution</a></div>
+                    </footer>
                 </article>
             }
-
         </div>
     }
 
     @if (Model.TotalPages > 1)
     {
-        <nav class="mt-4">
-            <ul class="pagination">
-
-                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
-                    <a class="page-link"
-                       asp-action="Feed"
-                       asp-route-page="@(Model.Page - 1)">
-                        Previous
-                    </a>
-                </li>
-
-                <li class="page-item disabled">
-                    <span class="page-link">
-                        @Model.Page / @Model.TotalPages
-                    </span>
-                </li>
-
-                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
-                    <a class="page-link"
-                       asp-action="Feed"
-                       asp-route-page="@(Model.Page + 1)">
-                        Next
-                    </a>
-                </li>
-
-            </ul>
-        </nav>
+        <nav class="mt-4" aria-label="Feed pages"><ul class="pagination">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")"><a class="page-link" asp-action="Feed" asp-route-page="@(Model.Page - 1)">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">@Model.Page / @Model.TotalPages</span></li>
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")"><a class="page-link" asp-action="Feed" asp-route-page="@(Model.Page + 1)">Next</a></li>
+        </ul></nav>
     }
-
 </div>

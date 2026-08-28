@@ -1,26 +1,4 @@
 @model PROJECT2106.ViewModels.CustomCategoryCreateViewModel
-
-@{
-    ViewData["Title"] = "New Custom Category";
-}
-
-<h2>New Custom Category</h2>
-
-<form method="post">
-    @Html.AntiForgeryToken()
-
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Create</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-</form>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+@{ ViewData["Title"] = "New Custom Category"; }
+<div class="page-shell page-shell-narrow"><header class="page-header"><div><p class="page-eyebrow">Personal taxonomy</p><h1 class="page-title page-title-sm">New custom category</h1></div></header><form method="post" class="content-card">@Html.AntiForgeryToken()<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div><div class="mb-4"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" placeholder="e.g. Industrial heritage" /><span asp-validation-for="Name" class="text-danger small"></span></div><div class="action-toolbar"><button type="submit" class="btn btn-primary">Create category</button><a asp-action="Index" class="btn btn-outline-secondary">Cancel</a></div></form></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

@@ -1,185 +1,31 @@
 @model PROJECT2106.ViewModels.PlaceCreateViewModel
 @using PROJECT2106.Models
-
-@{
-    ViewData["Title"] = "Create Place";
-}
-
-<h2>Create Place</h2>
-
-<form method="post">
-    @Html.AntiForgeryToken()
-
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-
-    <input asp-for="Latitude" type="hidden" />
-    <input asp-for="Longitude" type="hidden" />
-
-    <div class="mb-3">
-        <label class="form-label">Selected location</label>
-
-        @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
-        {
-            <div class="form-control bg-light">
-                @Model.Latitude.Value.ToString("F6"),
-                @Model.Longitude.Value.ToString("F6")
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-warning mb-2">
-                No map location selected.
-            </div>
-
-            <a asp-controller="Map"
-               asp-action="Index"
-               class="btn btn-outline-primary">
-                Select location on map
-            </a>
-        }
-
-        <span asp-validation-for="Latitude"
-              class="text-danger d-block"></span>
-
-        <span asp-validation-for="Longitude"
-              class="text-danger d-block"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description"
-                  class="form-control"
-                  rows="3"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="InitialPostContent" class="form-label"></label>
-
-        <textarea asp-for="InitialPostContent"
-                  class="form-control"
-                  rows="5"
-                  maxlength="5000"
-                  placeholder="Write an optional first post about this place..."></textarea>
-
-        <span asp-validation-for="InitialPostContent"
-              class="text-danger"></span>
-
-        <div class="form-text">
-            Optional. This will be created as a post linked to the place.
+@{ ViewData["Title"] = "Create Place"; }
+<div class="page-shell page-shell-narrow">
+    <header class="page-header"><div><p class="page-eyebrow">Add to the map</p><h1 class="page-title page-title-sm">Create a place</h1><p class="page-subtitle">Pin a precise location and give other explorers the context they need.</p></div></header>
+    <form method="post" class="content-card">
+        @Html.AntiForgeryToken()<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" placeholder="A memorable place name" /><span asp-validation-for="Name" class="text-danger small"></span></div>
+        <input asp-for="Latitude" type="hidden" /><input asp-for="Longitude" type="hidden" />
+        <div class="mb-3"><label class="form-label">Selected location</label>@if (Model.Latitude.HasValue && Model.Longitude.HasValue) { <div class="detail-item"><span>Coordinates</span><strong>@Model.Latitude.Value.ToString("F6"), @Model.Longitude.Value.ToString("F6")</strong></div> } else { <div class="alert alert-warning mb-2">No map location selected.</div><a asp-controller="Map" asp-action="Index" class="btn btn-outline-primary">Select location on map</a> }<span asp-validation-for="Latitude" class="text-danger d-block"></span><span asp-validation-for="Longitude" class="text-danger d-block"></span></div>
+        <div class="mb-3"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="4" placeholder="What makes this place worth knowing?"></textarea><span asp-validation-for="Description" class="text-danger small"></span></div>
+        <div class="mb-4"><label asp-for="InitialPostContent" class="form-label">First contribution <span class="text-muted">(optional)</span></label><textarea asp-for="InitialPostContent" class="form-control" rows="5" maxlength="5000" placeholder="Share an optional first field note..."></textarea><span asp-validation-for="InitialPostContent" class="text-danger small"></span><div class="form-text">Published as a contribution linked to the new place.</div></div>
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6"><section class="surface-card h-100"><div class="card-header">System categories</div><div class="card-body">@foreach (var category in Enum.GetValues<SystemCategory>()) { <div class="form-check mb-2"><input class="form-check-input" type="radio" asp-for="SystemCategory" value="@category" /><label class="form-check-label">@category</label></div> }</div></section></div>
+            <div class="col-12 col-md-6"><section class="surface-card h-100"><div class="card-header d-flex justify-content-between gap-2"><span>My categories</span><a asp-controller="CustomCategory" asp-action="Create" class="small">Create one</a></div><div class="card-body">@if (Model.CustomCategories.Count == 0) { <p class="text-muted mb-0">No custom categories yet.</p> } else { @foreach (var category in Model.CustomCategories) { <div class="form-check mb-2"><input class="form-check-input" type="radio" name="CustomCategoryId" value="@category.Id" id="custom-category-@category.Id" /><label class="form-check-label" for="custom-category-@category.Id">@category.Name</label></div> } }</div></section></div>
         </div>
-    </div>
-
-    <div class="card mb-3">
-        <div class="card-header">
-            System categories
-        </div>
-
-        <div class="card-body">
-            @foreach (var category in Enum.GetValues<SystemCategory>())
-            {
-                <div class="form-check">
-                    <input class="form-check-input"
-                           type="radio"
-                           asp-for="SystemCategory"
-                           value="@category" />
-
-                    <label class="form-check-label">
-                        @category
-                    </label>
-                </div>
-            }
-        </div>
-    </div>
-
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between">
-            <span>My custom categories</span>
-
-            <a asp-controller="CustomCategory"
-               asp-action="Create">
-                Create custom category
-            </a>
-        </div>
-
-        <div class="card-body">
-            @if (Model.CustomCategories.Count == 0)
-            {
-                <p class="text-muted mb-0">No custom categories yet.</p>
-            }
-            else
-            {
-                @foreach (var category in Model.CustomCategories)
-                {
-                    <div class="form-check">
-                        <input class="form-check-input"
-                               type="radio"
-                               name="CustomCategoryId"
-                               value="@category.Id"
-                               id="custom-category-@category.Id" />
-
-                        <label class="form-check-label"
-                               for="custom-category-@category.Id">
-                            @category.Name
-                        </label>
-                    </div>
-                }
-            }
-        </div>
-    </div>
-
-    <p class="text-muted">
-        Choose one system category or one custom category.
-    </p>
-
-    <button type="submit" class="btn btn-primary">Create Place</button>
-    <a asp-controller="Map"
-    asp-action="Index"
-    class="btn btn-secondary">
-        Cancel
-    </a>
-</form>
-
+        <p class="form-text mb-4">Choose one system category or one custom category.</p>
+        <div class="action-toolbar"><button type="submit" class="btn btn-primary">Create place</button><a asp-controller="Map" asp-action="Index" class="btn btn-outline-secondary">Cancel</a></div>
+    </form>
+</div>
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const systemRadios =
-                document.querySelectorAll('input[name="SystemCategory"]');
-
-            const customRadios =
-                document.querySelectorAll('input[name="CustomCategoryId"]');
-
-            systemRadios.forEach(radio => {
-                radio.addEventListener("change", function () {
-                    if (!this.checked) {
-                        return;
-                    }
-
-                    customRadios.forEach(custom => {
-                        custom.checked = false;
-                    });
-                });
-            });
-
-            customRadios.forEach(radio => {
-                radio.addEventListener("change", function () {
-                    if (!this.checked) {
-                        return;
-                    }
-
-                    systemRadios.forEach(system => {
-                        system.checked = false;
-                    });
-                });
-            });
+            const systemRadios = document.querySelectorAll('input[name="SystemCategory"]');
+            const customRadios = document.querySelectorAll('input[name="CustomCategoryId"]');
+            systemRadios.forEach(radio => radio.addEventListener("change", function () { if (this.checked) customRadios.forEach(custom => custom.checked = false); }));
+            customRadios.forEach(radio => radio.addEventListener("change", function () { if (this.checked) systemRadios.forEach(system => system.checked = false); }));
         });
     </script>
 }

@@ -4,38 +4,19 @@
     ViewData["Title"] = "Registration";
 }
 
-<h2>Registration</h2>
-
-<div style="max-width: 400px;">
-    <form method="post">
-    @Html.AntiForgeryToken()
-        <div asp-validation-summary="All" style="color: red;"></div>
-
-        <div style="margin-bottom: 10px;">
-            <label>Username:</label>
-            <input asp-for="UserName" class="form-control" />
-            <span asp-validation-for="UserName" style="color: red;"></span>
-        </div>
-
-        <div style="margin-bottom: 10px;">
-            <label>Email:</label>
-            <input asp-for="Email" class="form-control" />
-            <span asp-validation-for="Email" style="color: red;"></span>
-        </div>
-
-        <div style="margin-bottom: 10px;">
-            <label>Password:</label>
-            <input asp-for="Password" class="form-control" />
-            <span asp-validation-for="Password" style="color: red;"></span>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <label>Confirm Password:</label>
-            <input asp-for="ConfirmPassword" class="form-control" />
-            <span asp-validation-for="ConfirmPassword" style="color: red;"></span>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Register</button>
-        <a asp-action="Login" style="margin-left: 10px;">Already have an account?</a>
-    </form>
+<div class="auth-shell">
+    <section class="auth-card surface-card">
+        <div class="auth-brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 3.5 21l8.5-4.1 8.5 4.1L12 2Zm0 5.2 3.9 8.8-3.9-1.9L8.1 16 12 7.2Z"/></svg></span><strong>Atlas</strong></div>
+        <p class="page-eyebrow">Join the network</p><h1>Start your Atlas</h1><p class="text-muted mb-4">Create an explorer profile and put your discoveries on the map.</p>
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="alert alert-danger"></div>
+            <div class="mb-3"><label asp-for="UserName" class="form-label"></label><input asp-for="UserName" class="form-control" autocomplete="username" /><span asp-validation-for="UserName" class="text-danger small"></span></div>
+            <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="email" /><span asp-validation-for="Email" class="text-danger small"></span></div>
+            <div class="mb-3"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="new-password" /><span asp-validation-for="Password" class="text-danger small"></span></div>
+            <div class="mb-3"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" /><span asp-validation-for="ConfirmPassword" class="text-danger small"></span></div>
+            <button type="submit" class="btn btn-primary">Create account</button>
+            <p class="text-center text-muted small mt-3 mb-0">Already an explorer? <a asp-action="Login">Log in</a></p>
+        </form>
+    </section>
 </div>

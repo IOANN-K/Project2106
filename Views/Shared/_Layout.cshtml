@@ -2,6 +2,8 @@
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var accountName = User.Identity?.Name ?? "Account";
+    var accountInitial = accountName.Length > 0 ? accountName[..1].ToUpperInvariant() : "A";
     string NavClass(string controller, string? action = null) =>
         currentController == controller && (action == null || currentAction == action) ? "nav-link active" : "nav-link";
 }
@@ -54,8 +56,8 @@
                             <a asp-controller="Place" asp-action="Create" class="btn btn-primary nav-cta">Add place</a>
                             <div class="dropdown">
                                 <button class="account-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="avatar avatar-sm">@((User.Identity?.Name ?? "A")[..1].ToUpperInvariant())</span>
-                                    <span class="account-name">@(User.Identity?.Name ?? "Account")</span>
+                                    <span class="avatar avatar-sm">@accountInitial</span>
+                                    <span class="account-name">@accountName</span>
                                     <span aria-hidden="true">⌄</span>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">

@@ -1,135 +1,18 @@
 @model IReadOnlyList<PROJECT2106.Models.Notification>
 @using PROJECT2106.Models
-
-@{
-    ViewData["Title"] = "Notifications";
-}
-
-<div class="container py-4">
-
-    <div class="d-flex justify-content-between
-                align-items-center mb-4">
-
-        <div>
-            <h1 class="h3 mb-1">
-                Notifications
-            </h1>
-
-            <p class="text-muted mb-0">
-                Recent activity relevant to you.
-            </p>
-        </div>
-
-        @if (Model.Any(n => !n.IsRead))
-        {
-            <form asp-controller="Notification"
-                  asp-action="ReadAll"
-                  method="post">
-
-                <button type="submit"
-                        class="btn btn-sm btn-outline-secondary">
-                    Mark all as read
-                </button>
-
-            </form>
-        }
-
-    </div>
-
-    @if (Model.Count == 0)
-    {
-        <div class="card">
-            <div class="card-body text-center py-5">
-
-                <h2 class="h5">
-                    No notifications yet
-                </h2>
-
-                <p class="text-muted mb-0">
-                    Likes, comments, follows and new contributions
-                    will appear here.
-                </p>
-
-            </div>
-        </div>
-    }
+@{ ViewData["Title"] = "Notifications"; }
+<div class="page-shell page-shell-narrow">
+    <header class="page-header"><div><p class="page-eyebrow">Activity</p><h1 class="page-title page-title-sm">Notifications</h1><p class="page-subtitle">Likes, comments, follows, and new contributions relevant to you.</p></div>@if (Model.Any(n => !n.IsRead)) { <form asp-controller="Notification" asp-action="ReadAll" method="post"><button type="submit" class="btn btn-outline-secondary">Mark all as read</button></form> }</header>
+    @if (Model.Count == 0) { <div class="empty-state"><div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-8 12h4"/></svg></div><h2>All quiet for now</h2><p>New interactions and explorer activity will appear here.</p></div> }
     else
     {
-        <div class="list-group">
-
-            @foreach (var notification in Model)
-            {
-                var actor =
-                    notification.ActorUser?.UserName
-                    ?? "Someone";
-
-                var text = notification.Type switch
-                {
-                    NotificationType.PostLiked
-                        => $"{actor} liked your post.",
-
-                    NotificationType.PostCommented
-                        => $"{actor} commented on your post.",
-
-                    NotificationType.Followed
-                        => $"{actor} followed you.",
-
-                    NotificationType.FollowedUserPosted
-                        => $"{actor} added a new contribution.",
-
-                    _ => "New notification."
-                };
-
-                <form asp-controller="Notification"
-                      asp-action="Read"
-                      method="post"
-                      class="list-group-item
-                             list-group-item-action
-                             @(notification.IsRead ? "" : "fw-semibold")">
-
-                    <input type="hidden"
-                           name="id"
-                           value="@notification.Id" />
-
-                    <button type="submit"
-                            class="btn p-0 border-0
-                                   bg-transparent
-                                   text-start w-100">
-
-                        <div class="d-flex
-                                    justify-content-between
-                                    gap-3">
-
-                            <span>
-                                @text
-
-                                @if (!notification.IsRead)
-                                {
-                                    <span class="badge bg-primary ms-1">
-                                        New
-                                    </span>
-                                }
-                            </span>
-
-                            <small class="text-muted">
-                                @(notification.CreatedAt.ToString("dd.MM.yyyy HH:mm"))
-                            </small>
-
-                        </div>
-
-                        @if (notification.Place != null)
-                        {
-                            <div class="small text-muted mt-1">
-                                @notification.Place.Name
-                            </div>
-                        }
-
-                    </button>
-
-                </form>
-            }
-
+        <div class="feed-list">
+        @foreach (var notification in Model)
+        {
+            var actor = notification.ActorUser?.UserName ?? "Someone";
+            var text = notification.Type switch { NotificationType.PostLiked => $"{actor} liked your contribution.", NotificationType.PostCommented => $"{actor} commented on your contribution.", NotificationType.Followed => $"{actor} followed you.", NotificationType.FollowedUserPosted => $"{actor} added a new contribution.", _ => "New notification." };
+            <form asp-controller="Notification" asp-action="Read" method="post" class="place-card @(notification.IsRead ? "" : "notification-unread")"><input type="hidden" name="id" value="@notification.Id" /><button type="submit" class="btn p-0 border-0 bg-transparent text-start w-100"><div class="d-flex justify-content-between align-items-start gap-3"><span>@text @if (!notification.IsRead) { <span class="category-badge ms-1">New</span> }</span><small class="text-muted">@notification.CreatedAt.ToString("dd MMM, HH:mm")</small></div>@if (notification.Place != null) { <div class="small text-muted mt-1">At @notification.Place.Name</div> }</button></form>
+        }
         </div>
     }
-
 </div>

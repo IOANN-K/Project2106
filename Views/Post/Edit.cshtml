@@ -1,32 +1,4 @@
 @model PROJECT2106.ViewModels.PostEditViewModel
-
-@{
-    ViewData["Title"] = "Edit Post";
-}
-
-<h2>Edit Post</h2>
-
-<form method="post">
-    @Html.AntiForgeryToken()
-
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-    <input asp-for="Id" type="hidden" />
-
-    <div style="margin-bottom: 10px;">
-        <label asp-for="Content">Content:</label>
-        <br />
-        <textarea asp-for="Content"
-                  rows="4"
-                  style="width: 100%; max-width: 600px;"></textarea>
-        <br />
-        <span asp-validation-for="Content" class="text-danger"></span>
-    </div>
-
-    <button type="submit" style="padding: 8px 20px;">Save</button>
-    <a asp-action="Index" style="margin-left: 10px;">Cancel</a>
-</form>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+@{ ViewData["Title"] = "Edit Contribution"; }
+<div class="page-shell page-shell-narrow"><header class="page-header"><div><p class="page-eyebrow">Update field note</p><h1 class="page-title page-title-sm">Edit contribution</h1></div></header><form method="post" class="content-card">@Html.AntiForgeryToken()<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div><input asp-for="Id" type="hidden" /><div class="mb-4"><label asp-for="Content" class="form-label"></label><textarea asp-for="Content" rows="7" class="form-control"></textarea><span asp-validation-for="Content" class="text-danger small"></span></div><div class="action-toolbar"><button type="submit" class="btn btn-primary">Save changes</button><a asp-action="Index" class="btn btn-outline-secondary">Cancel</a></div></form></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
