@@ -1,0 +1,4 @@
+@model PROJECT2106.ViewModels.PostEditViewModel
+@{ ViewData["Title"] = "Edit Contribution"; }
+<div class="page-shell page-shell-narrow"><header class="page-header"><div><p class="page-eyebrow">Update field note</p><h1 class="page-title page-title-sm">Edit contribution</h1></div></header><form method="post" class="content-card">@Html.AntiForgeryToken()<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div><input asp-for="Id" type="hidden" /><div class="mb-4"><label asp-for="Content" class="form-label"></label><textarea asp-for="Content" rows="7" class="form-control"></textarea><span asp-validation-for="Content" class="text-danger small"></span></div><div class="action-toolbar"><button type="submit" class="btn btn-primary">Save changes</button><a asp-action="Index" class="btn btn-outline-secondary">Cancel</a></div></form></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

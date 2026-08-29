@@ -1,0 +1,244 @@
+@model PROJECT2106.ViewModels.PlaceDetailsViewModel
+@using System.Security.Claims
+@{
+    ViewData["Title"] = Model.Place.Name;
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var canAttemptDelete = User.Identity?.IsAuthenticated == true &&
+        (Model.Place.CreatedByUserId == currentUserId || User.IsInRole("Admin"));
+    var category = Model.Place.SystemCategory?.ToString() ?? Model.Place.CustomCategory?.Name ?? "Uncategorized";
+}
+
+<div class="page-shell">
+    <a asp-controller="Map" asp-action="Index" class="breadcrumb-link"><span aria-hidden="true">←</span> Back to Explore</a>
+    <header class="page-header">
+        <div>
+            <span class="category-badge">@category</span>
+            <h1 class="page-title mt-2">@Model.Place.Name</h1>
+            <div class="metadata-row mt-2">
+                <span>Created by @if (Model.Place.CreatedByUser?.UserName is string creatorName) { <a asp-controller="Profile" asp-action="Index" asp-route-username="@creatorName" class="author-link">@creatorName</a> } else { <strong>Unknown explorer</strong> }</span>
+                <span>@Model.Place.CreatedAt.ToString("dd MMM yyyy, HH:mm")</span>
+            </div>
+        </div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="action-toolbar">
+                <a asp-controller="Post" asp-action="Create" asp-route-placeId="@Model.Place.Id" class="btn btn-primary">Add contribution</a>
+                @if (canAttemptDelete)
+                {
+                    <a asp-action="Delete" asp-route-id="@Model.Place.Id" class="btn btn-outline-danger">Delete</a>
+                }
+            </div>
+        }
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(Model.PreviewImageUrl))
+    {
+        <div class="place-cover-wrap">
+            <button type="button"
+                    class="place-cover-button"
+                    data-place-cover-open
+                    aria-label="Open image for @Model.Place.Name">
+                <img src="@Model.PreviewImageUrl"
+                     alt="Preview image for @Model.Place.Name"
+                     class="place-cover-image"
+                     loading="lazy" />
+            </button>
+        </div>
+    }
+
+    <div class="place-detail-grid">
+        <section class="content-card">
+            <p class="page-eyebrow">About this place</p>
+            <h2 class="section-title">Field information</h2>
+            @if (!string.IsNullOrWhiteSpace(Model.Place.Description))
+            {
+                <p class="pre-line mt-3 mb-0">@Model.Place.Description</p>
+            }
+            else
+            {
+                <p class="text-muted mt-3 mb-0">No description has been added yet.</p>
+            }
+            <div class="detail-list">
+                <div class="detail-item"><span>Latitude</span><strong>@Model.Place.Latitude.ToString("F6")</strong></div>
+                <div class="detail-item"><span>Longitude</span><strong>@Model.Place.Longitude.ToString("F6")</strong></div>
+                <div class="detail-item"><span>Contributions</span><strong>@Model.PostCount</strong></div>
+            </div>
+        </section>
+
+        <aside class="content-card">
+            <p class="page-eyebrow">Explorer rating</p>
+            <div class="rating-score"><strong>@(Model.AverageRating?.ToString("0.0") ?? "0.0")</strong><span>/ 5</span></div>
+            <p class="text-muted small">@(Model.RatingCount == 0 ? "No ratings yet" : $"Based on {Model.RatingCount} rating(s)")</p>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                @if (TempData["RatingError"] is string ratingError) { <div class="alert alert-danger py-2">@ratingError</div> }
+                <form asp-controller="Place" asp-action="Rate" method="post" class="rating-form mt-3" data-rating-form>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PlaceId" value="@Model.Place.Id" />
+                    <fieldset class="rating-fieldset">
+                        <legend class="form-label">Your rating</legend>
+                        <div class="star-rating" role="radiogroup" aria-label="Rate this place from 1 to 5 stars">
+                            @for (var value = 1; value <= 5; value++)
+                            {
+                                var description = value == 5 ? "Exceptional" : value == 4 ? "Great" : value == 3 ? "Good" : value == 2 ? "Fair" : "Poor";
+                                var isChecked = Model.CurrentUserRating == value;
+                                var isFilled = Model.CurrentUserRating.HasValue && value <= Model.CurrentUserRating.Value;
+                                <label class="star-option @(isFilled ? "is-filled" : "")" for="place-rating-@value" title="@value — @description">
+                                    <input id="place-rating-@value" type="radio" name="Value" value="@value" checked="@isChecked" required />
+                                    <span class="star-icon" aria-hidden="true">★</span>
+                                    <span class="visually-hidden">@value @(value == 1 ? "star" : "stars") — @description</span>
+                                </label>
+                            }
+                        </div>
+                        <p class="rating-selection mb-0" data-rating-selection aria-live="polite">
+                            @(Model.CurrentUserRating.HasValue
+                                ? $"{Model.CurrentUserRating} — {(Model.CurrentUserRating == 5 ? "Exceptional" : Model.CurrentUserRating == 4 ? "Great" : Model.CurrentUserRating == 3 ? "Good" : Model.CurrentUserRating == 2 ? "Fair" : "Poor")}"
+                                : "Select a star to rate this place")
+                        </p>
+                    </fieldset>
+                    <button type="submit" class="btn btn-primary btn-sm">@(Model.CurrentUserRating.HasValue ? "Update rating" : "Rate place")</button>
+                </form>
+            }
+        </aside>
+    </div>
+
+    <div class="section-heading">
+        <div><p class="page-eyebrow mb-1">Community field notes</p><h2 class="section-title">Contributions <span class="text-muted">@Model.PostCount</span></h2></div>
+        <div class="place-sort" role="group" aria-label="Contribution sorting">
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="newest" class="place-sort-link @(Model.Sort == "newest" ? "active" : "")">Newest</a>
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="oldest" class="place-sort-link @(Model.Sort == "oldest" ? "active" : "")">Oldest</a>
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="most-liked" class="place-sort-link @(Model.Sort == "most-liked" ? "active" : "")">Most liked</a>
+            <a asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="most-discussed" class="place-sort-link @(Model.Sort == "most-discussed" ? "active" : "")">Discussed</a>
+        </div>
+    </div>
+
+    @if (Model.Posts.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 4V5Z"/></svg></div>
+            <h3>No contributions yet</h3><p>Be the first explorer to share a field note about this place.</p>
+            @if (User.Identity?.IsAuthenticated == true) { <a asp-controller="Post" asp-action="Create" asp-route-placeId="@Model.Place.Id" class="btn btn-primary">Add the first contribution</a> }
+        </div>
+    }
+    else
+    {
+        <div class="contribution-grid">
+            @foreach (var item in Model.Posts)
+            {
+                var post = item.Post;
+                var author = post.Author?.UserName ?? "Unknown explorer";
+                var initial = author.Length > 0 ? author[..1].ToUpperInvariant() : "?";
+                <article class="feed-card">
+                    <header class="feed-card-header">
+                        <div class="author-block"><a asp-controller="Profile" asp-action="Index" asp-route-username="@author" class="author-avatar-link" aria-label="View @author's profile">@if (!string.IsNullOrWhiteSpace(post.Author?.AvatarUrl)) { <img src="@post.Author.AvatarUrl" alt="" class="author-avatar-image avatar-md" loading="lazy" /><span class="avatar avatar-md avatar-fallback d-none">@initial</span> } else { <span class="avatar avatar-md">@initial</span> }</a><div class="author-copy"><a asp-controller="Profile" asp-action="Index" asp-route-username="@author" class="author-link">@author</a><small>@post.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (post.IsEdited) { <span>· edited</span> }</small></div></div>
+                        <span class="category-badge">Field note</span>
+                    </header>
+                    <div class="feed-card-body">
+                        <p class="pre-line">@post.Content</p>
+                        <partial name="_PostMediaGallery" model="post.Media.Take(1)" />
+                    </div>
+                    <footer class="feed-card-footer">
+                        <div class="social-actions" aria-label="Contribution activity"><span class="social-action social-action-like"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3m0 11V11l4-9c2 0 3 1.5 2.5 3.5L13 8h6a3 3 0 0 1 3 3l-1 7a4 4 0 0 1-4 4H7Z"/></svg><span class="social-action-count">@item.LikeCount</span></span><span class="social-action social-action-dislike"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3m0-11v11l4 9c2 0 3-1.5 2.5-3.5L13 16h6a3 3 0 0 0 3-3l-1-7a4 4 0 0 0-4-4H7Z"/></svg><span class="social-action-count">@item.DislikeCount</span></span><span class="social-action social-action-comment"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/></svg><span class="social-action-count">@item.CommentCount</span></span></div>
+                        <a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-primary">View contribution</a>
+                    </footer>
+                </article>
+            }
+        </div>
+    }
+
+    @if (Model.TotalPostPages > 1)
+    {
+        <nav class="mt-4" aria-label="Contribution pages"><ul class="pagination">
+            <li class="page-item @(Model.PostPage > 1 ? "" : "disabled")"><a class="page-link" asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="@Model.Sort" asp-route-page="@(Model.PostPage - 1)">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">@Model.PostPage / @Model.TotalPostPages</span></li>
+            <li class="page-item @(Model.PostPage < Model.TotalPostPages ? "" : "disabled")"><a class="page-link" asp-action="Details" asp-route-id="@Model.Place.Id" asp-route-sort="@Model.Sort" asp-route-page="@(Model.PostPage + 1)">Next</a></li>
+        </ul></nav>
+    }
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.PreviewImageUrl))
+{
+    <div class="place-lightbox" data-place-lightbox role="dialog" aria-modal="true" aria-label="Place image preview" hidden>
+        <button type="button" class="place-lightbox-close" data-place-lightbox-close aria-label="Close image">×</button>
+        <img src="@Model.PreviewImageUrl"
+             alt="Preview image for @Model.Place.Name"
+             class="place-lightbox-image" />
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (() => {
+            const descriptions = ["", "Poor", "Fair", "Good", "Great", "Exceptional"];
+
+            const coverButton = document.querySelector("[data-place-cover-open]");
+            const lightbox = document.querySelector("[data-place-lightbox]");
+
+            if (coverButton && lightbox) {
+                const closeButton = lightbox.querySelector("[data-place-lightbox-close]");
+                const lightboxImage = lightbox.querySelector(".place-lightbox-image");
+
+                const openLightbox = () => {
+                    lightbox.hidden = false;
+                    document.body.classList.add("place-lightbox-open");
+                    lightboxImage?.focus();
+                };
+
+                const closeLightbox = () => {
+                    lightbox.hidden = true;
+                    document.body.classList.remove("place-lightbox-open");
+                    coverButton.focus();
+                };
+
+                coverButton.addEventListener("click", openLightbox);
+                closeButton?.addEventListener("click", closeLightbox);
+                lightbox.addEventListener("click", (event) => {
+                    if (event.target === lightbox) {
+                        closeLightbox();
+                    }
+                });
+                document.addEventListener("keydown", (event) => {
+                    if (lightbox.hidden) {
+                        return;
+                    }
+
+                    if (event.key === "Escape") {
+                        closeLightbox();
+                    }
+                });
+            }
+
+            document.querySelectorAll("[data-rating-form]").forEach((form) => {
+                const options = [...form.querySelectorAll(".star-option")];
+                const inputs = [...form.querySelectorAll('input[name="Value"]')];
+                const selection = form.querySelector("[data-rating-selection]");
+
+                const paint = (value) => {
+                    options.forEach((option, index) => {
+                        option.classList.toggle("is-filled", index < value);
+                    });
+                };
+
+                const selectedValue = () => Number(inputs.find((input) => input.checked)?.value || 0);
+
+                options.forEach((option, index) => {
+                    const value = index + 1;
+                    option.addEventListener("pointerenter", () => paint(value));
+                });
+
+                form.querySelector(".star-rating")?.addEventListener("pointerleave", () => paint(selectedValue()));
+
+                inputs.forEach((input) => {
+                    input.addEventListener("change", () => {
+                        const value = Number(input.value);
+                        paint(value);
+                        selection.textContent = `${value} — ${descriptions[value]}`;
+                    });
+
+                    input.addEventListener("focus", () => paint(Number(input.value)));
+                    input.addEventListener("blur", () => paint(selectedValue()));
+                });
+            });
+        })();
+    </script>
+}

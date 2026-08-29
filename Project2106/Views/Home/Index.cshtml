@@ -1,0 +1,59 @@
+﻿@{
+    ViewData["Title"] = "Explore the world together";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+
+<section class="home-hero">
+    <div class="container-xl hero-grid">
+        <div>
+            <p class="page-eyebrow">A world built by explorers</p>
+            <h1 class="hero-title">Explore places worth discovering.</h1>
+            <p class="hero-copy">Find remarkable places, share what you learn, and follow the people who make every map more meaningful.</p>
+            <div class="action-toolbar">
+                <a asp-controller="Map" asp-action="Index" class="btn btn-primary btn-lg">Explore map</a>
+                @if (isAuthenticated)
+                {
+                    <a asp-controller="Post" asp-action="Feed" class="btn btn-outline-secondary btn-lg">My Feed</a>
+                    <a asp-controller="Place" asp-action="Create" class="btn btn-quiet btn-lg">Add place</a>
+                }
+                else
+                {
+                    <a asp-controller="Place" asp-action="Search" class="btn btn-outline-secondary btn-lg">Find places</a>
+                }
+            </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+            <div class="hero-map-lines">
+                <svg viewBox="0 0 560 480" preserveAspectRatio="none">
+                    <path d="M-20 350C90 280 108 118 230 160s134 208 350 108" fill="none" stroke="#7ba88f" stroke-width="4" stroke-dasharray="9 12"/>
+                    <path d="M20 64c108 62 171 6 261 59s89 154 298 140" fill="none" stroke="#fff" stroke-width="16" opacity=".7"/>
+                    <path d="M-30 420c135-84 203-26 275-101s156-70 340-32" fill="none" stroke="#bad2c2" stroke-width="30" opacity=".8"/>
+                    <circle cx="88" cy="105" r="70" fill="#c3d9ca"/><circle cx="475" cy="78" r="94" fill="#e8efe9"/>
+                </svg>
+            </div>
+            <div class="map-pin-art pin-one"><span>N</span></div>
+            <div class="map-pin-art pin-two"><span>V</span></div>
+            <div class="map-pin-art pin-three"><span>L</span></div>
+            <div class="hero-map-card">
+                <span class="category-badge">Hidden viewpoint</span>
+                <h2 class="h5 mt-2 mb-1">The best stories start off the usual path.</h2>
+                <p class="small text-muted mb-0">Community notes, honest ratings, and local discoveries—together on one map.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="feature-section">
+    <div class="container-xl">
+        <p class="page-eyebrow">Make the map yours</p>
+        <div class="page-header mb-0">
+            <h2 class="page-title page-title-sm">Explore. Contribute. Connect.</h2>
+            <p class="page-subtitle">Atlas turns coordinates into shared knowledge and one-time trips into an explorer community.</p>
+        </div>
+        <div class="feature-grid">
+            <article class="surface-card feature-card"><span class="feature-number">01 / DISCOVER</span><h3>Discover places</h3><p>Browse a living map of viewpoints, landmarks, campsites, hidden corners, and community-made categories.</p></article>
+            <article class="surface-card feature-card"><span class="feature-number">02 / SHARE</span><h3>Share discoveries</h3><p>Add precise locations, publish field notes, attach photos and video, and help others arrive informed.</p></article>
+            <article class="surface-card feature-card"><span class="feature-number">03 / FOLLOW</span><h3>Follow explorers</h3><p>Build a personal feed around people you trust and keep up with their latest contributions.</p></article>
+        </div>
+    </div>
+</section>

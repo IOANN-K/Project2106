@@ -1,0 +1,19 @@
+@model PROJECT2106.ViewModels.PagedResult<PROJECT2106.ViewModels.PostListItemViewModel>
+@{ ViewData["Title"] = "Contributions"; }
+<div class="page-shell">
+    <header class="page-header"><div><p class="page-eyebrow">Community journal</p><h1 class="page-title page-title-sm">All contributions</h1><p class="page-subtitle">Field notes and stories from across Atlas.</p></div></header>
+    <form method="get" asp-action="Index" class="filters-panel"><div class="d-flex flex-column flex-sm-row gap-2"><input type="search" name="tag" value="@ViewBag.CurrentTag" placeholder="Filter by tag..." class="form-control" /><button type="submit" class="btn btn-primary">Filter</button>@if (!string.IsNullOrEmpty(ViewBag.CurrentTag as string)) { <a asp-action="Index" class="btn btn-outline-secondary">Clear</a> }</div></form>
+    @if (Model.Items.Count == 0) { <div class="empty-state"><h2>No contributions found</h2><p>Try clearing the current tag filter.</p></div> }
+    else
+    {
+        <div class="contribution-grid">
+        @foreach (var post in Model.Items)
+        {
+            var initial = string.IsNullOrWhiteSpace(post.AuthorUsername) ? "?" : post.AuthorUsername[..1].ToUpperInvariant();
+            <article class="feed-card"><header class="feed-card-header"><div class="author-block"><a asp-controller="Profile" asp-action="Index" asp-route-username="@post.AuthorUsername" class="author-avatar-link" aria-label="View @post.AuthorUsername's profile">@if (!string.IsNullOrWhiteSpace(post.AuthorAvatarUrl)) { <img src="@post.AuthorAvatarUrl" alt="" class="author-avatar-image avatar-md" loading="lazy" /><span class="avatar avatar-md avatar-fallback d-none">@initial</span> } else { <span class="avatar avatar-md">@initial</span> }</a><div class="author-copy"><a asp-controller="Profile" asp-action="Index" asp-route-username="@post.AuthorUsername" class="author-link">@post.AuthorUsername</a><small>@post.CreatedAt.ToString("dd MMM yyyy, HH:mm")</small></div></div></header><div class="feed-card-body">@if (post.PlaceId.HasValue && !string.IsNullOrWhiteSpace(post.PlaceName)) { <div class="place-context">Contribution to <a asp-controller="Place" asp-action="Details" asp-route-id="@post.PlaceId"><strong>@post.PlaceName</strong></a></div> }<p class="pre-line">@(post.Content.Length > 240 ? post.Content[..240] + "…" : post.Content)</p>@if (post.Tags != null && post.Tags.Any()) { <div class="action-toolbar">@foreach (var tag in post.Tags) { <a asp-action="Index" asp-route-tag="@tag" class="category-badge text-decoration-none">#@tag</a> }</div> }</div><footer class="feed-card-footer"><div class="social-actions"><span class="social-action social-action-comment"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/></svg><span class="social-action-count">@post.CommentCount</span></span></div><div class="action-toolbar"><a asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-primary">View contribution</a>@if (User.Identity?.IsAuthenticated == true && (post.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin"))) { <a asp-action="Edit" asp-route-id="@post.Id" class="btn btn-sm btn-quiet">Edit</a><a asp-action="Delete" asp-route-id="@post.Id" class="btn btn-sm btn-outline-danger">Delete</a> }</div></footer></article>
+        }
+        </div>
+    }
+    @{ var previous = Url.Action("Index", new { tag = ViewBag.CurrentTag, page = Model.Page - 1 }); var next = Url.Action("Index", new { tag = ViewBag.CurrentTag, page = Model.Page + 1 }); }
+    <partial name="_Pager" model="new { Model.Page, Model.TotalPages, Model.HasPreviousPage, Model.HasNextPage, PreviousUrl = previous, NextUrl = next }" />
+</div>

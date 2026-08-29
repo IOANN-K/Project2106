@@ -1,0 +1,57 @@
+@model PROJECT2106.Models.Post
+@{
+    ViewData["Title"] = "Contribution";
+    var author = Model.Author?.UserName ?? "Explorer";
+    var initial = author.Length > 0 ? author[..1].ToUpperInvariant() : "?";
+    var canManage = Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin");
+}
+<div class="page-shell feed-shell">
+    <a asp-controller="Post" asp-action="Index" class="breadcrumb-link"><span aria-hidden="true">←</span> Back to contributions</a>
+    <article class="feed-card contribution-detail-card">
+        <header class="feed-card-header">
+            <div class="author-block">
+                <a asp-controller="Profile" asp-action="Index" asp-route-username="@author" class="author-avatar-link" aria-label="View @author's profile">@if (!string.IsNullOrWhiteSpace(Model.Author?.AvatarUrl)) { <img src="@Model.Author.AvatarUrl" alt="" class="author-avatar-image avatar-md" loading="lazy" /><span class="avatar avatar-md avatar-fallback d-none">@initial</span> } else { <span class="avatar avatar-md">@initial</span> }</a>
+                <div class="author-copy"><a asp-controller="Profile" asp-action="Index" asp-route-username="@author" class="author-link">@author</a><small>@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (Model.IsEdited) { <span>· edited @Model.EditedAt?.ToString("dd MMM yyyy, HH:mm")</span> }</small></div>
+            </div>
+            <span class="category-badge">Contribution #@Model.Id</span>
+        </header>
+        <div class="feed-card-body"><p class="pre-line">@Model.Content</p><partial name="_PostMediaGallery" model="Model.Media" /></div>
+        <footer class="feed-card-footer">
+            <div class="social-actions" aria-label="Contribution activity">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form method="post" asp-controller="Like" asp-action="ToggleLike"><input type="hidden" name="postId" value="@Model.Id" /><input type="hidden" name="isLike" value="true" /><button type="submit" class="social-action social-action-like" aria-label="Like this contribution"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3m0 11V11l4-9c2 0 3 1.5 2.5 3.5L13 8h6a3 3 0 0 1 3 3l-1 7a4 4 0 0 1-4 4H7Z"/></svg><span class="social-action-count">@ViewBag.Likes</span></button></form>
+                    <form method="post" asp-controller="Like" asp-action="ToggleLike"><input type="hidden" name="postId" value="@Model.Id" /><input type="hidden" name="isLike" value="false" /><button type="submit" class="social-action social-action-dislike" aria-label="Dislike this contribution"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3m0-11v11l4 9c2 0 3-1.5 2.5-3.5L13 16h6a3 3 0 0 0 3-3l-1-7a4 4 0 0 0-4-4H7Z"/></svg><span class="social-action-count">@ViewBag.Dislikes</span></button></form>
+                }
+                else
+                {
+                    <span class="social-action social-action-like"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3m0 11V11l4-9c2 0 3 1.5 2.5 3.5L13 8h6a3 3 0 0 1 3 3l-1 7a4 4 0 0 1-4 4H7Z"/></svg><span class="social-action-count">@ViewBag.Likes</span></span>
+                    <span class="social-action social-action-dislike"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3m0-11v11l4 9c2 0 3-1.5 2.5-3.5L13 16h6a3 3 0 0 0 3-3l-1-7a4 4 0 0 0-4-4H7Z"/></svg><span class="social-action-count">@ViewBag.Dislikes</span></span>
+                }
+                <a href="#comments" class="social-action social-action-comment" aria-label="View comments"><svg class="social-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/></svg><span class="social-action-count">@(Model.Comments?.Count ?? 0)</span></a>
+            </div>
+            @if (canManage) { <div class="action-toolbar"><a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-quiet">Edit</a><a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-danger">Delete</a></div> }
+        </footer>
+    </article>
+
+    <section id="comments" class="content-card mt-4">
+        <div class="section-heading mt-0"><div><p class="page-eyebrow mb-1">Discussion</p><h2 class="section-title">Comments</h2></div></div>
+        @if (TempData["CommentError"] is string commentError) { <div class="alert alert-danger">@commentError</div> }
+        @if (Model.Comments != null && Model.Comments.Any())
+        {
+            <ul class="comments-list">
+                @foreach (var comment in Model.Comments.Where(c => c.ParentCommentId == null).OrderByDescending(c => c.CreatedAt)) { await Html.RenderPartialAsync("_Comment", comment); }
+            </ul>
+        }
+        else { <div class="empty-state py-4"><h3>No comments yet</h3><p class="mb-0">Start the conversation with a useful question or observation.</p></div> }
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" asp-controller="Post" asp-action="AddComment" class="mt-4"><input type="hidden" name="postId" value="@Model.Id" /><label class="form-label" for="new-comment">Add a comment</label><textarea id="new-comment" name="Content" required maxlength="2000" rows="3" class="form-control" placeholder="Share a thoughtful response..."></textarea><button type="submit" class="btn btn-primary mt-2">Post comment</button></form>
+        }
+    </section>
+</div>
+<script>
+    function startEdit(id) { document.getElementById('comment-text-' + id).style.display = 'none'; document.getElementById('comment-edit-form-' + id).style.display = 'block'; }
+    function cancelEdit(id) { document.getElementById('comment-text-' + id).style.display = 'block'; document.getElementById('comment-edit-form-' + id).style.display = 'none'; }
+    function toggleReply(id) { const form = document.getElementById('reply-form-' + id); form.style.display = form.style.display === 'none' ? 'block' : 'none'; }
+</script>

@@ -1,0 +1,128 @@
+@model PROJECT2106.ViewModels.PlaceSearchViewModel
+@using PROJECT2106.Models
+@{
+    ViewData["Title"] = "Find Places";
+}
+
+<div class="page-shell">
+    <header class="page-header">
+        <div>
+            <p class="page-eyebrow">Community directory</p>
+            <h1 class="page-title page-title-sm">Find your next place</h1>
+            <p class="page-subtitle">Search by name, narrow the map by category, and discover places trusted by explorers.</p>
+        </div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Place" asp-action="Create" class="btn btn-primary">Add a place</a>
+        }
+    </header>
+
+    <form method="get" asp-controller="Place" asp-action="Search" class="filters-panel">
+        <div class="row g-3">
+            <div class="col-12 filter-search">
+                <label class="form-label" for="place-query">Search places</label>
+                <input id="place-query" type="search" name="query" value="@Model.Query" class="form-control" placeholder="Try a lake, viewpoint, landmark, or old factory..." />
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label" for="system-category">System category</label>
+                <select name="systemCategory" id="system-category" class="form-select">
+                    <option value="">All categories</option>
+                    @foreach (var category in Enum.GetValues<SystemCategory>())
+                    {
+                        if (Model.SystemCategory == category) { <option value="@category" selected>@category</option> }
+                        else { <option value="@category">@category</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label" for="custom-category">Custom category</label>
+                <select name="customCategoryId" id="custom-category" class="form-select">
+                    <option value="">All custom categories</option>
+                    @foreach (var category in Model.CustomCategories)
+                    {
+                        if (Model.CustomCategoryId == category.Id) { <option value="@category.Id" selected>@category.Name</option> }
+                        else { <option value="@category.Id">@category.Name</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label" for="minimum-rating">Minimum rating</label>
+                <select name="minimumRating" id="minimum-rating" class="form-select">
+                    <option value="">Any rating</option>
+                    @for (var rating = 1; rating <= 5; rating++)
+                    {
+                        if (Model.MinimumRating == rating) { <option value="@rating" selected>@rating.0 and above</option> }
+                        else { <option value="@rating">@rating.0 and above</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label" for="place-sort">Sort results</label>
+                <select name="sort" id="place-sort" class="form-select">
+                    <option value="newest" selected="@(Model.Sort == "newest")">Newest first</option>
+                    <option value="popular" selected="@(Model.Sort == "popular")">Most popular</option>
+                </select>
+            </div>
+            <div class="col-12 action-toolbar">
+                <button type="submit" class="btn btn-primary">Search places</button>
+                <a asp-controller="Place" asp-action="Search" class="btn btn-outline-secondary">Clear filters</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="section-heading">
+        <div><p class="page-eyebrow mb-1">Results</p><h2 class="section-title">Places matching your search</h2></div>
+        <span class="text-muted small">@Model.Results.Items.Count shown</span>
+    </div>
+
+    @if (Model.Results.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 8v6m-3-3h6"/></svg></div>
+            <h2>No places found</h2>
+            <p>Try a broader name, another category, or a lower minimum rating.</p>
+            <a asp-controller="Place" asp-action="Search" class="btn btn-outline-primary">Reset search</a>
+        </div>
+    }
+    else
+    {
+        <div class="place-results">
+            @foreach (var place in Model.Results.Items)
+            {
+                var category = place.SystemCategory?.ToString() ?? place.CustomCategoryName ?? "Other";
+                <article class="place-card">
+                    <div>
+                        <span class="category-badge">@category</span>
+                        <h2>@place.Name</h2>
+                        <div class="metadata-row"><span>Added @place.CreatedAt.ToString("dd MMM yyyy")</span></div>
+                        <div class="place-metrics">
+                            <span><strong>@(place.AverageRating?.ToString("0.0") ?? "0.0")</strong> / 5 · @place.RatingCount ratings</span>
+                            <span><strong>@place.PostCount</strong> contributions</span>
+                        </div>
+                    </div>
+                    <a asp-controller="Place" asp-action="Details" asp-route-id="@place.Id" class="btn btn-primary">View place</a>
+                </article>
+            }
+        </div>
+    }
+
+    @if (Model.Results.TotalPages > 1)
+    {
+        <nav class="mt-4" aria-label="Place results pages"><ul class="pagination">
+            <li class="page-item @(Model.Results.HasPreviousPage ? "" : "disabled")"><a class="page-link" asp-action="Search" asp-route-query="@Model.Query" asp-route-systemCategory="@Model.SystemCategory" asp-route-customCategoryId="@Model.CustomCategoryId" asp-route-minimumRating="@Model.MinimumRating" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Results.Page - 1)">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">@Model.Results.Page / @Model.Results.TotalPages</span></li>
+            <li class="page-item @(Model.Results.HasNextPage ? "" : "disabled")"><a class="page-link" asp-action="Search" asp-route-query="@Model.Query" asp-route-systemCategory="@Model.SystemCategory" asp-route-customCategoryId="@Model.CustomCategoryId" asp-route-minimumRating="@Model.MinimumRating" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Results.Page + 1)">Next</a></li>
+        </ul></nav>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const systemCategory = document.getElementById("system-category");
+            const customCategory = document.getElementById("custom-category");
+            systemCategory?.addEventListener("change", () => { if (systemCategory.value) customCategory.value = ""; });
+            customCategory?.addEventListener("change", () => { if (customCategory.value) systemCategory.value = ""; });
+        })();
+    </script>
+}

@@ -1,0 +1,522 @@
+@{
+    ViewData["Title"] = "Explore";
+    var isMyMap = ViewBag.MyMap as bool? ?? false;
+}
+
+@section Styles {
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="" />
+}
+
+<div class="map-page">
+    <div class="explore-header">
+        <div>
+            <span class="mode-badge">@(isMyMap ? "My map" : "Global map")</span>
+            <h1 class="page-title page-title-sm mt-2">@(isMyMap ? "Your explored world" : "Explore the map")</h1>
+            <p class="page-subtitle">@(isMyMap ? "Places you created or contributed to." : "Discover places shared by explorers around the world.")</p>
+        </div>
+        <div class="action-toolbar">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Map" asp-action="@(isMyMap ? "Index" : "My")" class="btn btn-outline-secondary">@(isMyMap ? "Global map" : "My map")</a>
+                <a asp-controller="Place" asp-action="Create" class="btn btn-primary">Add place</a>
+            }
+        </div>
+    </div>
+
+    <div class="map-shell">
+        <div id="explore-map"
+             aria-label="Explore places map"></div>
+
+        <div id="my-map-empty-state"
+             class="map-empty-state surface-card d-none"
+             role="status">
+                <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Zm0 0V3m6 18V6"/></svg></div>
+                <h2 class="h5">Your map is ready for a first pin</h2>
+                <p class="text-muted">
+                    Create a place or contribute to an existing place
+                    to make it appear here.
+                </p>
+                <a asp-controller="Map"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Explore global map
+                </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        crossorigin="">
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const isMyMap = @Json.Serialize(isMyMap);
+
+            const map = L.map("explore-map").setView(
+                [48.4647, 35.0462],
+                11
+            );
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }
+            ).addTo(map);
+
+            const userLocationIcon = L.divIcon({
+                className: "",
+                html: '<div class="user-location-marker"></div>',
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
+            });
+
+            let userLocationMarker = null;
+
+            function showUserLocation() {
+                if (!navigator.geolocation) {
+                    console.info(
+                        "Geolocation is not supported by this browser."
+                    );
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+
+                        if (userLocationMarker) {
+                            userLocationMarker.setLatLng([
+                                latitude,
+                                longitude
+                            ]);
+                        } else {
+                            userLocationMarker = L.marker(
+                                [latitude, longitude],
+                                {
+                                    icon: userLocationIcon,
+                                    interactive: true,
+                                    zIndexOffset: 1000
+                                }
+                            )
+                                .bindPopup("You are here")
+                                .addTo(map);
+                        }
+
+                        map.setView(
+                            [latitude, longitude],
+                            Math.max(map.getZoom(), 14)
+                        );
+                    },
+                    error => {
+                        console.info(
+                            "Your location is unavailable.",
+                            error.message
+                        );
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            }
+
+            const markerIcons = Object.freeze({
+                nature: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22V9m0 8-5-5m5 1 5-5M5 11l7-9 7 9a7 7 0 0 1-14 0Z"/></svg>',
+                landmark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 18h18v3H3v-3Zm9-16 9 5H3l9-5Z"/></svg>',
+                viewpoint: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 19 6-10 3 5 2-3 7 8H3Zm2-11 2-3 2 3M16 7l2-3 2 3"/></svg>',
+                food: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2v8m-3-8v5a3 3 0 0 0 6 0V2M6 10v12m9-20v20m0-20c4 2 5 7 0 10"/></svg>',
+                shop: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Zm4 2V6a3 3 0 0 1 6 0v4"/></svg>',
+                abandoned: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V8l5-3v4l5-4v5l8-4v15H3Zm5-7h2m4 0h2m-8 4h2m4 0h2"/></svg>',
+                camping: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 18H3L12 3Zm0 0v18m-5 0 5-7 5 7"/></svg>',
+                photoSpot: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4a2 2 0 0 1 2 2v10H2V9a2 2 0 0 1 2-2Zm8 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>',
+                other: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Zm-8 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>',
+                custom: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2L5.8 21 7 14.2l-5-4.9 6.9-1L12 2Z"/></svg>'
+            });
+
+            const markerPresentation = {
+                Nature: {
+                    cssClass: "marker-nature",
+                    svg: markerIcons.nature
+                },
+                Landmark: {
+                    cssClass: "marker-landmark",
+                    svg: markerIcons.landmark
+                },
+                Viewpoint: {
+                    cssClass: "marker-viewpoint",
+                    svg: markerIcons.viewpoint
+                },
+                Food: {
+                    cssClass: "marker-food",
+                    svg: markerIcons.food
+                },
+                Shop: {
+                    cssClass: "marker-shop",
+                    svg: markerIcons.shop
+                },
+                Abandoned: {
+                    cssClass: "marker-abandoned",
+                    svg: markerIcons.abandoned
+                },
+                Camping: {
+                    cssClass: "marker-camping",
+                    svg: markerIcons.camping
+                },
+                PhotoSpot: {
+                    cssClass: "marker-photospot",
+                    svg: markerIcons.photoSpot
+                },
+                Other: {
+                    cssClass: "marker-other",
+                    svg: markerIcons.other
+                }
+            };
+
+            const customMarkerPresentation = {
+                cssClass: "marker-custom",
+                svg: markerIcons.custom
+            };
+
+            function createPlaceIcon(place) {
+                const presentation = place.isCustomCategory
+                    ? customMarkerPresentation
+                    : markerPresentation[place.category]
+                        ?? markerPresentation.Other;
+
+                const customIconPath =
+                    typeof place.iconPath === "string" &&
+                    /^\/uploads\/category-icons\/[a-f0-9]{32}\.(?:png|jpe?g|webp)$/i.test(place.iconPath)
+                        ? place.iconPath
+                        : null;
+
+                const markerContent =
+                    place.isCustomCategory && customIconPath
+                        ? `<img src="${customIconPath}" alt="" class="map-marker-uploaded-icon" />`
+                        : presentation.svg;
+
+                return L.divIcon({
+                    className: "",
+                    html: `
+                        <div class="map-marker ${presentation.cssClass}">
+                            <span class="map-marker-symbol">
+                                ${markerContent}
+                            </span>
+                        </div>
+                    `,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -30]
+                });
+            }
+
+            const legend = L.control({
+                position: "bottomright"
+            });
+
+            legend.onAdd = function () {
+                const container = L.DomUtil.create(
+                    "div",
+                    "map-legend"
+                );
+
+                const entries = [
+                    [markerPresentation.Nature, "Nature"],
+                    [markerPresentation.Landmark, "Landmark"],
+                    [markerPresentation.Viewpoint, "Viewpoint"],
+                    [markerPresentation.Food, "Food"],
+                    [markerPresentation.Shop, "Shop"],
+                    [markerPresentation.Abandoned, "Abandoned"],
+                    [markerPresentation.Camping, "Camping"],
+                    [markerPresentation.PhotoSpot, "Photo Spot"],
+                    [markerPresentation.Other, "Other"],
+                    [customMarkerPresentation, "Custom category"]
+                ];
+
+                for (const [presentation, label] of entries) {
+                    const row = document.createElement("div");
+                    row.className = "map-legend-row";
+
+                    const icon = document.createElement("span");
+                    icon.className = `map-legend-icon ${presentation.cssClass}`;
+                    icon.innerHTML = presentation.svg;
+
+                    const text = document.createElement("span");
+                    text.textContent = label;
+
+                    row.appendChild(icon);
+                    row.appendChild(text);
+                    container.appendChild(row);
+                }
+
+                return container;
+            };
+
+            legend.addTo(map);
+
+            const locationControl = L.control({
+                position: "topleft"
+            });
+
+            locationControl.onAdd = function () {
+                const button = L.DomUtil.create(
+                    "button",
+                    "btn btn-light shadow-sm"
+                );
+
+                button.type = "button";
+                button.title = "Show my location";
+                button.setAttribute(
+                    "aria-label",
+                    "Show my location"
+                );
+                button.textContent = "My location";
+
+                L.DomEvent.disableClickPropagation(button);
+
+                L.DomEvent.on(button, "click", function (event) {
+                    L.DomEvent.stop(event);
+                    showUserLocation();
+                });
+
+                return button;
+            };
+
+            locationControl.addTo(map);
+
+            const canCreatePlace =
+                @(User.Identity?.IsAuthenticated == true ? "true" : "false");
+
+            let selectedLocationMarker = null;
+
+            map.on("click", async function (event) {
+                const latitude = event.latlng.lat;
+                const longitude = event.latlng.lng;
+
+                let nearbyPlaces = [];
+
+                try {
+                    const nearbyResponse = await fetch(
+                        `/Map/Nearby?latitude=${encodeURIComponent(latitude)}`
+                        + `&longitude=${encodeURIComponent(longitude)}`,
+                        {
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        }
+                    );
+
+                    if (nearbyResponse.ok) {
+                        nearbyPlaces = await nearbyResponse.json();
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to check nearby places.",
+                        error
+                    );
+                }
+
+                if (selectedLocationMarker) {
+                    map.removeLayer(selectedLocationMarker);
+                }
+
+                selectedLocationMarker = L.marker(
+                    [latitude, longitude]
+                ).addTo(map);
+
+                const popup = document.createElement("div");
+
+                const title = document.createElement("div");
+                title.className = "place-popup-name";
+                title.textContent = "Selected location";
+
+                const coordinates = document.createElement("div");
+                coordinates.className = "place-popup-category";
+                coordinates.textContent =
+                    `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+                popup.appendChild(title);
+                popup.appendChild(coordinates);
+
+                if (nearbyPlaces.length > 0) {
+                    const warning = document.createElement("div");
+                    warning.className = "alert alert-warning py-2 mt-2 mb-2";
+
+                    const warningTitle = document.createElement("strong");
+                    warningTitle.textContent = "Nearby places found";
+
+                    warning.appendChild(warningTitle);
+
+                    const list = document.createElement("div");
+                    list.className = "mt-2";
+
+                    for (const nearbyPlace of nearbyPlaces) {
+                        const item = document.createElement("div");
+                        item.className =
+                            "d-flex justify-content-between align-items-center gap-2 mb-1";
+
+                        const info = document.createElement("span");
+
+                        const distance =
+                            nearbyPlace.distanceMeters < 10
+                                ? nearbyPlace.distanceMeters.toFixed(1)
+                                : nearbyPlace.distanceMeters.toFixed(0);
+
+                        info.textContent =
+                            `${nearbyPlace.name} — ${distance} m`;
+
+                        const openLink = document.createElement("a");
+                        openLink.href =
+                            `/Place/Details/${nearbyPlace.id}`;
+
+                        openLink.textContent = "Open";
+                        openLink.className =
+                            "btn btn-sm btn-outline-secondary";
+
+                        item.appendChild(info);
+                        item.appendChild(openLink);
+
+                        list.appendChild(item);
+                    }
+
+                    warning.appendChild(list);
+                    popup.appendChild(warning);
+                }
+
+                if (canCreatePlace) {
+                    const addButton = document.createElement("a");
+
+                    addButton.className = "btn btn-sm btn-primary";
+
+                    addButton.textContent =
+                        nearbyPlaces.length > 0
+                            ? "Create anyway"
+                            : "Add Place";
+                    addButton.href =
+                        `/Place/Create?latitude=${encodeURIComponent(latitude)}`
+                        + `&longitude=${encodeURIComponent(longitude)}`;
+
+                    popup.appendChild(addButton);
+                } else {
+                    const message = document.createElement("div");
+                    message.className = "text-muted";
+                    message.textContent =
+                        "Sign in to add a place.";
+
+                    popup.appendChild(message);
+                }
+
+                selectedLocationMarker
+                    .bindPopup(popup)
+                    .openPopup();
+            });
+
+            try {
+                const markerUrl = isMyMap
+                    ? "/Map/Markers?mine=true"
+                    : "/Map/Markers";
+
+                const response = await fetch(markerUrl, {
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Marker request failed: ${response.status}`
+                    );
+                }
+
+                const places = await response.json();
+
+                if (isMyMap && places.length === 0) {
+                    document
+                        .getElementById("my-map-empty-state")
+                        ?.classList.remove("d-none");
+                }
+
+                const bounds = [];
+
+                for (const place of places) {
+                    const marker = L.marker([
+                        place.latitude,
+                        place.longitude
+                    ],
+                    {
+                        icon: createPlaceIcon(place)
+                    }
+                );
+
+                    const rating =
+                        place.rating == null
+                            ? "No ratings yet"
+                            : `${place.rating.toFixed(1)} / 5`;
+
+                    const popup = document.createElement("div");
+
+                    const previewImageUrl = typeof place.previewImageUrl === "string" && place.previewImageUrl.length > 0
+                        ? place.previewImageUrl
+                        : null;
+
+                    if (previewImageUrl) {
+                        const image = document.createElement("img");
+                        image.src = previewImageUrl;
+                        image.alt = `${place.name} preview`;
+                        image.className = "place-popup-image";
+                        popup.appendChild(image);
+                    }
+
+                    const name = document.createElement("div");
+                    name.className = "place-popup-name";
+                    name.textContent = place.name;
+
+                    const category = document.createElement("div");
+                    category.className = "place-popup-category";
+                    category.textContent = place.category;
+
+                    const ratingElement = document.createElement("div");
+                    ratingElement.textContent = rating;
+
+                    const link = document.createElement("a");
+                    link.href = `/Place/Details/${place.id}`;
+                    link.textContent = "Open place";
+
+                    popup.appendChild(name);
+                    popup.appendChild(category);
+                    popup.appendChild(ratingElement);
+                    popup.appendChild(link);
+
+                    marker.bindPopup(popup);
+                    marker.addTo(map);
+
+                    bounds.push([
+                        place.latitude,
+                        place.longitude
+                    ]);
+                }
+
+                if (bounds.length === 1) {
+                    map.setView(bounds[0], 14);
+                } else if (bounds.length > 1) {
+                    map.fitBounds(bounds, {
+                        padding: [30, 30],
+                        maxZoom: 15
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to load map markers.", error);
+            }
+        });
+    </script>
+}

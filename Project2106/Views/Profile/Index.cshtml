@@ -1,0 +1,131 @@
+@model PROJECT2106.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = $"Profile - {Model.User.UserName}";
+    var username = Model.User.UserName ?? "Unknown";
+    var initial = username.Length > 0 ? username[..1].ToUpperInvariant() : "?";
+}
+
+<div class="page-shell">
+    @if (TempData["StatusMessage"] is string statusMessage)
+    {
+        <div class="alert alert-success">@statusMessage</div>
+    }
+    <section class="profile-hero profile-card">
+        <div class="profile-hero-content">
+            <div>
+                @if (!string.IsNullOrWhiteSpace(Model.User.AvatarUrl))
+                {
+                    <div>
+                        <img src="@Model.User.AvatarUrl" alt="@username avatar" class="profile-avatar-image rounded-circle" loading="lazy" />
+                        <div class="avatar avatar-lg avatar-fallback d-none">@initial</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="avatar avatar-lg">@initial</div>
+                }
+            </div>
+            <div class="flex-grow-1">
+                <div class="metadata-row mb-1"><span>Explorer since @Model.User.CreatedAt.ToString("MMM yyyy")</span><span>@Model.ExplorerLevel</span></div>
+                <h1>@username</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.User.Bio)) { <p class="profile-bio pre-line">@Model.User.Bio</p> }
+                else { <p class="profile-bio text-muted">No bio yet—this explorer is letting the map speak first.</p> }
+                <div class="action-toolbar">
+                    @if (User.Identity?.IsAuthenticated == true && !Model.IsOwnProfile)
+                    {
+                        if (Model.IsFollowing)
+                        {
+                            <form method="post" asp-controller="Follow" asp-action="Unfollow"><input type="hidden" name="username" value="@Model.User.UserName" /><button type="submit" class="btn btn-outline-secondary">Unfollow</button></form>
+                        }
+                        else
+                        {
+                            <form method="post" asp-controller="Follow" asp-action="Follow"><input type="hidden" name="username" value="@Model.User.UserName" /><button type="submit" class="btn btn-primary">Follow explorer</button></form>
+                        }
+                    }
+                    @if (Model.IsOwnProfile)
+                    {
+                        <a asp-controller="Map" asp-action="My" class="btn btn-outline-primary">View My Map</a>
+                        <a asp-controller="Profile" asp-action="Edit" class="btn btn-primary">Edit profile</a>
+                        <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-outline-secondary">Change password</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="stat-grid" aria-label="Explorer statistics">
+        <div class="stat-card"><span class="stat-value">@Model.Reputation</span><span class="stat-label">Reputation</span></div>
+        <div class="stat-card"><span class="stat-value">@Model.ExplorerLevel</span><span class="stat-label">Explorer level</span></div>
+        <div class="stat-card"><span class="stat-value">@Model.CreatedPlacesCount</span><span class="stat-label">Places</span></div>
+        <div class="stat-card"><span class="stat-value">@Model.ContributionsCount</span><span class="stat-label">Contributions</span></div>
+        <div class="stat-card"><span class="stat-value">@Model.LikesReceived</span><span class="stat-label">Likes received</span></div>
+        <div class="stat-card"><span class="stat-value">@Model.CommentsCreated</span><span class="stat-label">Comments</span></div>
+        <div class="stat-card"><span class="stat-value">@Model.FollowersCount / @Model.FollowingCount</span><span class="stat-label">Followers / Following</span></div>
+    </div>
+
+    <section>
+        <div class="section-heading"><div><p class="page-eyebrow mb-1">Pinned by @username</p><h2 class="section-title">Created places</h2></div><span class="text-muted small">@Model.CreatedPlacesCount total</span></div>
+        @if (Model.CreatedPlaces.Count == 0)
+        {
+            <div class="empty-state py-4"><h3>No created places yet</h3><p class="mb-0">This explorer has not added a place to Atlas yet.</p></div>
+        }
+        else
+        {
+            <div class="profile-card-grid">
+                @foreach (var place in Model.CreatedPlaces)
+                {
+                    var placeCategory = place.SystemCategory?.ToString() ?? place.CustomCategoryName ?? "Custom category";
+                    <article class="place-card profile-place-card">
+                        <div class="profile-card-media">
+                            @if (!string.IsNullOrWhiteSpace(place.PreviewImageUrl))
+                            {
+                                <img src="@place.PreviewImageUrl" alt="Preview of @place.Name" class="post-media-image profile-card-image" loading="lazy" />
+                                <div class="post-media-fallback profile-card-placeholder d-none"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 19 6-10 3 5 2-3 7 8H3Z"/></svg><span>@placeCategory</span></div>
+                            }
+                            else
+                            {
+                                <div class="profile-card-placeholder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 19 6-10 3 5 2-3 7 8H3Z"/></svg><span>@placeCategory</span></div>
+                            }
+                        </div>
+                        <div class="profile-card-content"><span class="category-badge">@placeCategory</span><h3>@place.Name</h3><div class="metadata-row"><span>Added @place.CreatedAt.ToString("dd MMM yyyy")</span></div><a asp-controller="Place" asp-action="Details" asp-route-id="@place.Id" class="btn btn-sm btn-outline-primary mt-auto">View place</a></div>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+
+    <section>
+        <div class="section-heading"><div><p class="page-eyebrow mb-1">Latest field notes</p><h2 class="section-title">Contributions</h2></div><span class="text-muted small">@Model.ContributionsCount total</span></div>
+        @if (Model.Contributions.Count == 0)
+        {
+            <div class="empty-state"><div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 4V5Z"/></svg></div><h3>No contributions yet</h3><p>This explorer has not published any field notes yet.</p></div>
+        }
+        else
+        {
+            <div class="profile-card-grid">
+                @foreach (var post in Model.Contributions)
+                {
+                    <article class="feed-card profile-contribution-card">
+                        @if (!string.IsNullOrWhiteSpace(post.PreviewImageUrl))
+                        {
+                            <div class="profile-card-media"><img src="@post.PreviewImageUrl" alt="Contribution preview" class="post-media-image profile-card-image" loading="lazy" /><div class="post-media-fallback profile-card-placeholder d-none"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 4V5Z"/></svg><span>Field note</span></div></div>
+                        }
+                        <div class="feed-card-body">
+                            @if (post.PlaceId.HasValue && !string.IsNullOrWhiteSpace(post.PlaceName)) { <div class="place-context">Contribution to <a asp-controller="Place" asp-action="Details" asp-route-id="@post.PlaceId"><strong>@post.PlaceName</strong></a></div> }
+                            <p class="pre-line">@post.Excerpt</p>
+                        </div>
+                        <footer class="feed-card-footer"><small class="text-muted">@post.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (post.IsEdited) { <span>· edited</span> }</small><a asp-controller="Post" asp-action="Details" asp-route-id="@post.Id" class="btn btn-sm btn-outline-primary">View contribution</a></footer>
+                    </article>
+                }
+            </div>
+        }
+        @if (Model.ContributionTotalPages > 1)
+        {
+            <nav class="mt-4" aria-label="Profile contribution pages"><ul class="pagination">
+                <li class="page-item @(Model.ContributionPage > 1 ? "" : "disabled")"><a class="page-link" asp-controller="Profile" asp-action="Index" asp-route-username="@Model.User.UserName" asp-route-page="@(Model.ContributionPage - 1)">Previous</a></li>
+                <li class="page-item disabled"><span class="page-link">@Model.ContributionPage / @Model.ContributionTotalPages</span></li>
+                <li class="page-item @(Model.ContributionPage < Model.ContributionTotalPages ? "" : "disabled")"><a class="page-link" asp-controller="Profile" asp-action="Index" asp-route-username="@Model.User.UserName" asp-route-page="@(Model.ContributionPage + 1)">Next</a></li>
+            </ul></nav>
+        }
+    </section>
+</div>

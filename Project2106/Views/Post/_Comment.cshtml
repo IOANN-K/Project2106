@@ -1,0 +1,29 @@
+@model PROJECT2106.Models.Comment
+<li class="comment-item">
+    @{ var commentAuthor = Model.Author?.UserName ?? "Explorer"; var commentInitial = commentAuthor.Length > 0 ? commentAuthor[..1].ToUpperInvariant() : "?"; }
+    <div class="comment-head"><div class="author-block"><a asp-controller="Profile" asp-action="Index" asp-route-username="@commentAuthor" class="author-avatar-link" aria-label="View @commentAuthor's profile">@if (!string.IsNullOrWhiteSpace(Model.Author?.AvatarUrl)) { <img src="@Model.Author.AvatarUrl" alt="" class="author-avatar-image avatar-sm" loading="lazy" /><span class="avatar avatar-sm avatar-fallback d-none">@commentInitial</span> } else { <span class="avatar avatar-sm">@commentInitial</span> }</a><div class="author-copy"><a asp-controller="Profile" asp-action="Index" asp-route-username="@commentAuthor" class="author-link">@commentAuthor</a><small>@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm") @if (Model.IsEdited) { <span>· edited @Model.EditedAt?.ToString("dd MMM yyyy, HH:mm")</span> }</small></div></div></div>
+    <p id="comment-text-@Model.Id" class="comment-content">@Model.Content</p>
+    <div class="comment-actions">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <button type="button" onclick="toggleReply(@Model.Id)" class="btn btn-sm btn-outline-primary">Reply</button>
+        }
+        @if (User.Identity?.IsAuthenticated == true && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
+        {
+            <button type="button" onclick="startEdit(@Model.Id)" class="btn btn-sm btn-quiet">Edit</button>
+            <form method="post" asp-controller="Post" asp-action="DeleteComment"><input type="hidden" name="commentId" value="@Model.Id" /><button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this comment?')">Delete</button></form>
+        }
+    </div>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <form id="reply-form-@Model.Id" method="post" asp-controller="Post" asp-action="AddComment" class="mt-2" style="display:none;"><input type="hidden" name="postId" value="@Model.PostId" /><input type="hidden" name="parentCommentId" value="@Model.Id" /><textarea name="Content" required maxlength="2000" rows="2" class="form-control" placeholder="Write a reply..."></textarea><button type="submit" class="btn btn-sm btn-primary mt-1">Post reply</button></form>
+    }
+    @if (User.Identity?.IsAuthenticated == true && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
+    {
+        <form id="comment-edit-form-@Model.Id" method="post" asp-controller="Post" asp-action="EditComment" class="mt-2" style="display:none;"><input type="hidden" name="commentId" value="@Model.Id" /><textarea name="Content" required maxlength="2000" rows="2" class="form-control">@Model.Content</textarea><div class="action-toolbar mt-1"><button type="submit" class="btn btn-sm btn-primary">Save</button><button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit(@Model.Id)">Cancel</button></div></form>
+    }
+    @if (Model.Replies != null && Model.Replies.Any())
+    {
+        <ul class="comment-replies">@foreach (var reply in Model.Replies) { await Html.RenderPartialAsync("_Comment", reply); }</ul>
+    }
+</li>

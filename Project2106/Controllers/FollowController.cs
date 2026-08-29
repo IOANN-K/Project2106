@@ -1,0 +1,110 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using PROJECT2106.Data;
+using PROJECT2106.Models;
+
+namespace PROJECT2106.Controllers;
+
+[Authorize]
+public class FollowController : Controller
+{
+    private readonly AppDbContext _db;
+    private readonly UserManager<AppUser> _userManager;
+
+    public FollowController(AppDbContext db, UserManager<AppUser> userManager)
+    {
+        _db = db;
+        _userManager = userManager;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Follow(string username)
+    {
+        var currentUserId = _userManager.GetUserId(User);
+        if (currentUserId == null)
+            return Forbid();
+
+        var userToFollow = await _userManager.FindByNameAsync(username);
+
+        if (userToFollow == null || userToFollow.Id == currentUserId)
+        {
+            return BadRequest();
+        }
+
+        var existingFollow = await _db.Follows
+            .FirstOrDefaultAsync(f => f.FollowerId == currentUserId && f.FollowingId == userToFollow.Id);
+
+        if (existingFollow != null)
+        {
+            return BadRequest();
+        }
+
+        var follow = new Follow
+        {
+            FollowerId = currentUserId,
+            FollowingId = userToFollow.Id,
+            CreatedAt = DateTime.Now
+        };
+
+        _db.Follows.Add(follow);
+
+        _db.Notifications.Add(new Notification
+        {
+            UserId = userToFollow.Id,
+            ActorUserId = currentUserId,
+            Type = NotificationType.Followed,
+            CreatedAt = DateTime.Now
+        });
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation
+            })
+        {
+            _db.Entry(follow).State = EntityState.Detached;
+
+            return RedirectToAction(
+                "Index",
+                "Profile",
+                new { username });
+        }
+
+        return RedirectToAction("Index", "Profile", new { username });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Unfollow(string username)
+    {
+        var currentUserId = _userManager.GetUserId(User);
+        if (currentUserId == null)
+            return Forbid();
+
+        var userToUnfollow = await _userManager.FindByNameAsync(username);
+
+        if (userToUnfollow == null || userToUnfollow.Id == currentUserId)
+        {
+            return BadRequest();
+        }
+
+        var existingFollow = await _db.Follows
+            .FirstOrDefaultAsync(f => f.FollowerId == currentUserId && f.FollowingId == userToUnfollow.Id);
+
+        if (existingFollow == null)
+        {
+            return BadRequest();
+        }
+
+        _db.Follows.Remove(existingFollow);
+        await _db.SaveChangesAsync();
+
+        return RedirectToAction("Index", "Profile", new { username });
+    }
+}
