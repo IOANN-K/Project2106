@@ -1,0 +1,33 @@
+namespace PROJECT2106.ViewModels;
+
+public sealed class PlaceDetailsViewModel
+{
+    public required Models.Place Place { get; init; }
+
+    public IReadOnlyList<PlacePostListItemViewModel> Posts { get; init; }
+        = Array.Empty<PlacePostListItemViewModel>();
+
+    public int PostCount { get; init; }
+
+    public int PostPage { get; init; }
+
+    public int PostPageSize { get; init; }
+
+    public int TotalPostCount { get; init; }
+
+    public int TotalPostPages =>
+        TotalPostCount == 0
+            ? 0
+            : (int)Math.Ceiling(
+                TotalPostCount / (double)PostPageSize);
+
+    public string Sort { get; init; } = "newest";
+
+    public double? AverageRating { get; init; }
+
+    public int RatingCount { get; init; }
+
+    public int? CurrentUserRating { get; init; }
+
+    public string? PreviewImageUrl { get; init; }
+}

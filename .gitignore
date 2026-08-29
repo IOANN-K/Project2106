@@ -482,4 +482,7 @@ $RECYCLE.BIN/
 *.swp
 
 
-wwwroot/uploads
+# Submission-specific local artifacts
+coverage/
+appsettings.Development.local.json
+Project2106/wwwroot/uploads/

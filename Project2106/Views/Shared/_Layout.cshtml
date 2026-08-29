@@ -1,0 +1,144 @@
+@using PROJECT2106.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<AppUser> UserManager
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var currentUser = isAuthenticated ? await UserManager.GetUserAsync(User) : null;
+    var accountName = currentUser?.UserName ?? User.Identity?.Name ?? "Account";
+    var accountInitial = accountName.Length > 0 ? accountName[..1].ToUpperInvariant() : "A";
+    var accountAvatarUrl = currentUser?.AvatarUrl;
+    string NavClass(string controller, string? action = null) =>
+        currentController == controller && (action == null || currentAction == action) ? "nav-link active" : "nav-link";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta id="theme-color" name="theme-color" content="#174f3a" />
+    <title>@ViewData["Title"] - Atlas</title>
+    <link rel="icon" type="image/png" href="~/images/brand/atlas-icon.png" />
+    <script>
+        (() => {
+            try {
+                const savedTheme = localStorage.getItem("atlas-theme");
+                const theme = savedTheme === "light" || savedTheme === "dark"
+                    ? savedTheme
+                    : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+                document.documentElement.dataset.theme = theme;
+                document.getElementById("theme-color")?.setAttribute("content", theme === "dark" ? "#0e1512" : "#174f3a");
+            } catch {
+                document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+            }
+        })();
+    </script>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/PROJECT2106.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg app-navbar" aria-label="Primary navigation">
+            <div class="container-xl">
+                <a class="navbar-brand brand-lockup" asp-area="" asp-controller="Home" asp-action="Index" aria-label="Atlas home">
+                    <span class="brand-mark" aria-hidden="true">
+                        <img src="~/images/brand/atlas-icon.png" alt="" class="brand-icon" onerror="this.hidden=true;this.nextElementSibling.hidden=false" />
+                        <svg class="brand-icon-fallback" viewBox="0 0 24 24" focusable="false" hidden><path d="M12 2 3.5 21l8.5-4.1 8.5 4.1L12 2Zm0 5.2 3.9 8.8-3.9-1.9L8.1 16 12 7.2Z"/></svg>
+                    </span>
+                    <span><strong>Atlas</strong><small>Explorer Network</small></span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#atlasNavigation"
+                        aria-controls="atlasNavigation" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="atlasNavigation">
+                    <ul class="navbar-nav app-nav-links me-auto">
+                        <li class="nav-item"><a class="@NavClass("Map", "Index")" asp-controller="Map" asp-action="Index">Explore</a></li>
+                        <li class="nav-item"><a class="@NavClass("Place", "Search")" asp-controller="Place" asp-action="Search">Find Places</a></li>
+                        <li class="nav-item"><a class="@NavClass("Post", "Feed")" asp-controller="Post" asp-action="Feed">Feed</a></li>
+                        @if (isAuthenticated)
+                        {
+                            <li class="nav-item"><a class="@NavClass("Map", "My")" asp-controller="Map" asp-action="My">My Map</a></li>
+                            <li class="nav-item"><a class="@NavClass("Notification")" asp-controller="Notification" asp-action="Index">Notifications</a></li>
+                        }
+                    </ul>
+                    <div class="navbar-actions">
+                        <form class="nav-search" method="get" asp-controller="Profile" asp-action="Search" role="search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+                            <input type="search" name="query" placeholder="Search explorers" aria-label="Search explorers" />
+                        </form>
+                        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark theme" title="Switch theme">
+                            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+                            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z"/></svg>
+                        </button>
+                        @if (isAuthenticated)
+                        {
+                            <a asp-controller="Place" asp-action="Create" class="btn btn-primary nav-cta">Add place</a>
+                            <div class="dropdown">
+                                <button class="account-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @if (!string.IsNullOrWhiteSpace(accountAvatarUrl))
+                                    {
+                                        <img src="@accountAvatarUrl" alt="@accountName avatar" class="account-avatar-image" loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <span class="avatar avatar-sm">@accountInitial</span>
+                                    }
+                                    <span class="account-name">@accountName</span>
+                                    <span aria-hidden="true">⌄</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index" asp-route-username="@User.Identity?.Name">Profile</a></li>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index">Admin</a></li>
+                                    }
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><form method="post" asp-controller="Account" asp-action="Logout"><button type="submit" class="dropdown-item">Log out</button></form></li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <a class="btn btn-quiet" asp-controller="Account" asp-action="Login">Log in</a>
+                            <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Join Atlas</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <main id="main-content" class="site-main" role="main">@RenderBody()</main>
+    <footer class="site-footer">
+        <div class="container-xl footer-inner">
+            <div><strong>Atlas</strong> <span>Explorer Network</span></div>
+            <div>&copy; 2026 Atlas · <a asp-controller="Home" asp-action="Privacy">Privacy</a></div>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".post-media-image, .profile-avatar-image, .author-avatar-image").forEach(image => {
+                image.addEventListener("error", function () {
+                    this.classList.add("d-none");
+                    this.parentElement?.querySelector(".post-media-fallback, .avatar-fallback")?.classList.remove("d-none");
+                });
+            });
+            document.querySelectorAll(".post-media-video").forEach(video => {
+                video.addEventListener("error", function () {
+                    this.classList.add("d-none");
+                    this.parentElement?.querySelector(".post-media-fallback")?.classList.remove("d-none");
+                });
+            });
+        });
+    </script>
+</body>
+</html>
